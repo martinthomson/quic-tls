@@ -429,7 +429,7 @@ encrypted.  The data contained is integrity protected once the handshake
 completes.
 
 
-### The `quic_transport_parameters` Extension
+### The quic_transport_parameters Extension
 
 The `quic_transport_parameters` extension contains a declarative set of
 parameters that constrain the behaviour of a peer.  This includes the size of
@@ -488,7 +488,7 @@ If the server decides to use QUIC, this extension MUST be included in the
 EncryptedExtensions message.
 
 
-### The `quic_options` Extension {#quic_options}
+### The quic_options Extension {#quic_options}
 
 The `quic_options` extension includes a list of options that can be negotiated
 for a given connection.  These are set during the initial handshake and are
