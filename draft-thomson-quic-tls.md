@@ -1,5 +1,5 @@
 ---
-title: Porting QUIC to Transport Layer Security (DTLS)
+title: Porting QUIC to Transport Layer Security (TLS)
 abbrev: QUIC over TLS
 docname: draft-thomson-quic-tls-latest
 date: 2016
@@ -210,7 +210,7 @@ ensure that the TLS handshake packets are delivered reliably and in order.
    |                 UDP                  |
    +--------------------------------------+
 ~~~
-{: #dtls-quic-stack title="QUIC over TLS"}
+{: #tls-quic-stack title="QUIC over TLS"}
 
 In this design the QUIC envelope carries QUIC frames until the TLS handshake
 completes.  After the handshake successfully completes the key exchange, QUIC
@@ -462,7 +462,7 @@ These parameters are not confidentiality-protected when sent by the client, but
 the server response is protected by the handshake traffic keys.  The entire
 exchange is integrity protected once the handshake completes.
 
-This information is not used by DTLS, but can be passed to the QUIC protocol as
+This information is not used by TLS, but can be passed to the QUIC protocol as
 initialization parmeters.
 
 
