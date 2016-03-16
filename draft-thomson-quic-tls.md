@@ -27,10 +27,6 @@ informative:
   RFC7540:
   RFC7230:
   RFC7258:
-  RFC6347:
-  RFC5764:
-  RFC5389:
-  RFC3711:
   RFC0793:
 
 --- abstract
@@ -345,6 +341,23 @@ QUIC deals with this by providing authenticated repair mechansims that operate
 above the layer of encryption.  QUIC can therefore operate without restarting
 sequence numbers.
 
+## Alternative Design: Exporters
+
+An exporter could be used to provide keying material for a QUIC-specific record
+protection.  This could draw on the selected cipher suite and the TLS record
+protection design so that the overall effort required to design and analyze is
+kept minimal.
+
+One concern with using exporters is that TLS doesn't define an exporter for use
+prior to the end of the handshake.  That means the creation of a special
+exporter for use in protecting 0-RTT data.  That's a pretty sharp object to
+leave lying around, and it's not clear what the properties we could provide.
+(That doesn't mean that there wouldn't be demand for such a thing, the
+possibility has already been raised.)
+
+In the end, using an exporter doesn't alter the design significantly.  Given the
+risks, a modification to the record protocol is probably safer.
+
 
 ## Key Update
 
@@ -390,7 +403,8 @@ Note:
 Alternative design:
 
 : We could easily forbid the use of KeyUpdate, which could limit the amount of
-  data that a single connection is able to transfer.  This limit is pretty big.
+  data that a single connection is able to transfer.  This limit is pretty big,
+  but maybe not big enough.
 
 Alternative design:
 
@@ -432,20 +446,24 @@ proposes that all strategies are possible depending on the type of message.
   {{pre-handshake-protected}}).
 
 
-## QUIC Transport Parameters {#quic_transport_parameters}
+## QUIC-Specific Extensions {#quic-extensions}
 
-Values that are relatively static and won't change over the duration of the TLS
-handshake can be included in the TLS
-handshake in Hello extensions.  This ensures that the values are usable
-immediately and modification is detected.
+A client describes characteristics of the transport protocol it intends to
+conduct with the server in a new QUIC-specific extensions in its ClientHello.
+The server uses this information to determine whether it wants to continue the
+connection, request source address validation, or reject the connection.  Having
+this information unencrypted permits this check to occur prior to committing the
+resources needed to complete the initial key exchange.
 
-QUIC transport parameters are added to two new extensions: the
-`quic_transport_parameters` extension and the `quic_options` extension.
+If the server decides to complete the connection, it generates a corresponding
+response and includes it in the EncryptedExtensions message.
 
-These extensions are not confidentiality-protected when sent by the client, but
-the server response is included in the EncryptedExtensions message and therefore
-encrypted.  The data contained is integrity protected once the handshake
-completes.
+These parameters are not confidentiality-protected when sent by the client, but
+the server response is protected by the handshake traffic keys.  The entire
+exchange is integrity protected once the handshake completes.
+
+This information is not used by DTLS, but can be passed to the QUIC protocol as
+initialization parmeters.
 
 
 ### The quic_transport_parameters Extension {#quic_transport_parameters}
@@ -469,6 +487,7 @@ parameters such as the receive buffer size.
    struct {
        uint32 connection_initial_window;
        uint32 stream_initial_window;
+       uint32 implicit_shutdown_timeout;
        QuicTransportParameter parameters<0..2^16-1>;
    } QuicTransportParametersExtension;
 ~~~
