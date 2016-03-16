@@ -69,24 +69,25 @@ Table of Contents
      4.1.  Protocol and Version Negotiation  . . . . . . . . . . . .   7
      4.2.  Source Address Validation . . . . . . . . . . . . . . . .   8
    5.  Record Protection . . . . . . . . . . . . . . . . . . . . . .   8
-     5.1.  Key Update  . . . . . . . . . . . . . . . . . . . . . . .   9
-   6.  Pre-handshake QUIC Messages . . . . . . . . . . . . . . . . .   9
-     6.1.  QUIC Transport Parameters . . . . . . . . . . . . . . . .  10
-       6.1.1.  The quic_transport_parameters Extension . . . . . . .  11
-       6.1.2.  The quic_options Extension  . . . . . . . . . . . . .  12
+     5.1.  Alternative Design: Exporters . . . . . . . . . . . . . .   9
+     5.2.  Key Update  . . . . . . . . . . . . . . . . . . . . . . .   9
+   6.  Pre-handshake QUIC Messages . . . . . . . . . . . . . . . . .  10
+     6.1.  QUIC-Specific Extensions  . . . . . . . . . . . . . . . .  11
+       6.1.1.  The quic_transport_parameters Extension . . . . . . .  12
+       6.1.2.  The quic_options Extension  . . . . . . . . . . . . .  13
      6.2.  Unprotected Frames Prior to Handshake Completion  . . . .  13
-       6.2.1.  STREAM Frames . . . . . . . . . . . . . . . . . . . .  13
-       6.2.2.  ACK Frames  . . . . . . . . . . . . . . . . . . . . .  13
-       6.2.3.  WINDOW_UPDATE Frames  . . . . . . . . . . . . . . . .  13
-       6.2.4.  FEC Packets . . . . . . . . . . . . . . . . . . . . .  14
-     6.3.  Protected Frames Prior to Handshake Completion  . . . . .  14
-   7.  QUIC Connection ID  . . . . . . . . . . . . . . . . . . . . .  15
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  16
-   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  16
-   10. Acknowledgments . . . . . . . . . . . . . . . . . . . . . . .  16
-   11. References  . . . . . . . . . . . . . . . . . . . . . . . . .  16
-     11.1.  Normative References . . . . . . . . . . . . . . . . . .  16
-     11.2.  Informative References . . . . . . . . . . . . . . . . .  17
+       6.2.1.  STREAM Frames . . . . . . . . . . . . . . . . . . . .  14
+       6.2.2.  ACK Frames  . . . . . . . . . . . . . . . . . . . . .  14
+       6.2.3.  WINDOW_UPDATE Frames  . . . . . . . . . . . . . . . .  14
+       6.2.4.  FEC Packets . . . . . . . . . . . . . . . . . . . . .  15
+     6.3.  Protected Frames Prior to Handshake Completion  . . . . .  15
+   7.  Connection ID . . . . . . . . . . . . . . . . . . . . . . . .  16
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  17
+   9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  17
+   10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  17
+     10.1.  Normative References . . . . . . . . . . . . . . . . . .  17
+     10.2.  Informative References . . . . . . . . . . . . . . . . .  17
+   Appendix A.  Acknowledgments  . . . . . . . . . . . . . . . . . .  18
    Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  18
 
 1.  Introduction
@@ -105,7 +106,6 @@ Table of Contents
 
    This document describes how the standardized TLS 1.3 might serve as a
    security layer for QUIC.  The same design could work for TLS 1.2,
-
 
 
 
@@ -259,8 +259,9 @@ Internet-Draft                QUIC over TLS                   March 2016
       packets on the address it claims to have (see Section 4.2).
 
    o  A pre-shared key mode can be used for subsequent handshakes to
-      avoid public key operations.  (FFS: 0-RTT for PSK seems feasible,
-      but it isn't clearly defined right now).
+      avoid public key operations.  This might be the basis for 0-RTT,
+      even if the remainder of the connection is protected by a new
+      Diffie-Hellman exchange.
 
 3.  QUIC over TLS Structure
 
@@ -269,7 +270,6 @@ Internet-Draft                QUIC over TLS                   March 2016
    protocol.  QUIC over TLS does the same, relying on the ordered
    delivery guarantees provided by QUIC to ensure that the TLS handshake
    packets are delivered reliably and in order.
-
 
 
 
@@ -298,7 +298,7 @@ Internet-Draft                QUIC over TLS                   March 2016
       |                 UDP                  |
       +--------------------------------------+
 
-                         Figure 3: QUIC over DTLS
+                          Figure 3: QUIC over TLS
 
    In this design the QUIC envelope carries QUIC frames until the TLS
    handshake completes.  After the handshake successfully completes the
@@ -319,16 +319,16 @@ Internet-Draft                QUIC over TLS                   March 2016
       ALPN [RFC7301].  The only unprotected packets are then public
       resets and ACK frames, both of which could be given first octet
       values that would easily distinguish them from other TLS packets.
+      This requires that the QUIC sequence numbers be moved to the
+      outside of the record.
 
 4.  Mapping of QUIC to QUIC over TLS
 
    Several changes to the structure of QUIC are necessary to make a
    layered design practical.
 
-   These changes produce the handshake shown in Figure 4.  Once
-   complete, QUIC frames and forward error control (FEC) messages are
-   encapsulated in using TLS record protection.
-
+   These changes produce the handshake shown in Figure 4.  In this
+   handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.
 
 
 
@@ -338,16 +338,25 @@ Thomson                Expires September 17, 2016               [Page 6]
 Internet-Draft                QUIC over TLS                   March 2016
 
 
+   QUIC is responsible for ensuring that the handshake packets are re-
+   sent in case of loss and that they can be ordered correctly.
+
+   QUIC operates without any record protection until the handshake
+   completes, just as TLS over TCP does not include record protection
+   for the handshake messages.  Once complete, QUIC frames and forward
+   error control (FEC) messages are encapsulated in using TLS record
+   protection.
+
        Client                                             Server
 
-      QUIC STREAM Frame (1)
+      QUIC STREAM Frame <stream 1>
        ClientHello
         + QUIC Setup Parameters
         + ALPN ("quic")
-      (Finished)
-      (Replayable QUIC Frames)
-      (end_of_early_data)        -------->
-                                            QUIC STREAM Frame (1)
+      (Finished)                 -------->
+      (Replayable QUIC Frames <any stream>)
+      (end_of_early_data <1>) -------->
+                                            QUIC STREAM Frame <1>
                                                      ServerHello
                                             {EncryptedExtensions}
                                             {ServerConfiguration}
@@ -355,6 +364,7 @@ Internet-Draft                QUIC over TLS                   March 2016
                                               {CertificateVerify}
                                                        {Finished}
                                 <--------       [QUIC Frames/FEC]
+      QUIC STREAM Frame <1>
       {Finished}                -------->
 
       [QUIC Frames/FEC]         <------->       [QUIC Frames/FEC]
@@ -376,6 +386,14 @@ Internet-Draft                QUIC over TLS                   March 2016
    negotiated by QUIC subsequently disagrees with the version negotiated
    using ALPN, then the handshake MUST be terminated with a fatal error.
 
+
+
+
+Thomson                Expires September 17, 2016               [Page 7]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
+
    The following versions are defined:
 
                        +------------+--------------+
@@ -385,14 +403,6 @@ Internet-Draft                QUIC over TLS                   March 2016
                        |            |              |
                        | "quic-yy"  | 0x90abcedf   |
                        +------------+--------------+
-
-
-
-
-Thomson                Expires September 17, 2016               [Page 7]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
 
 4.2.  Source Address Validation
 
@@ -432,6 +442,14 @@ Internet-Draft                QUIC over TLS                   March 2016
 
    The restart in TLS ensures that a compromise of the current traffic
    keys does not allow an attacker to truncate the data that is sent
+
+
+
+Thomson                Expires September 17, 2016               [Page 8]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
+
    after a key update by sending additional packets under the old key
    (causing new packets to be discarded).  In comparison, QUIC does not
    rely on this having integrity for a continuous sequence of
@@ -443,14 +461,26 @@ Internet-Draft                QUIC over TLS                   March 2016
    that operate above the layer of encryption.  QUIC can therefore
    operate without restarting sequence numbers.
 
+5.1.  Alternative Design: Exporters
 
+   An exporter could be used to provide keying material for a QUIC-
+   specific record protection.  This could draw on the selected cipher
+   suite and the TLS record protection design so that the overall effort
+   required to design and analyze is kept minimal.
 
-Thomson                Expires September 17, 2016               [Page 8]
-
-Internet-Draft                QUIC over TLS                   March 2016
+   One concern with using exporters is that TLS doesn't define an
+   exporter for use prior to the end of the handshake.  That means the
+   creation of a special exporter for use in protecting 0-RTT data.
+   That's a pretty sharp object to leave lying around, and it's not
+   clear what the properties we could provide.  (That doesn't mean that
+   there wouldn't be demand for such a thing, the possibility has
+   already been raised.)
 
+   In the end, using an exporter doesn't alter the design significantly.
+   Given the risks, a modification to the record protocol is probably
+   safer.
 
-5.1.  Key Update
+5.2.  Key Update
 
    Each time that the TLS record protection keys are changed, the
    message initiating the change could be lost.  This results in
@@ -468,6 +498,14 @@ Internet-Draft                QUIC over TLS                   March 2016
    lost packet is therefore required to test whether the incoming packet
    can be decrypted under an imminent traffic key.  If the packet cannot
    be decrypted, then it is dropped.  If the packet can be decrypted
+
+
+
+Thomson                Expires September 17, 2016               [Page 9]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
+
    under the new traffic key, it MUST switch to using that new traffic
    key for all subsequent packets.
 
@@ -492,20 +530,21 @@ Internet-Draft                QUIC over TLS                   March 2016
       packets would be large enough to warrant fragmentation such that
       partial data could be recovered and used to derive traffic keys.
 
+   Alternative design:  We could easily forbid the use of KeyUpdate,
+      which could limit the amount of data that a single connection is
+      able to transfer.  This limit is pretty big, but maybe not big
+      enough.
+
+   Alternative design:  A single epoch bit, sent in the clear, would
+      also address this concern.  QUIC does have some spare bits
+      available, such as the bit used for entropy.
+
 6.  Pre-handshake QUIC Messages
 
    Implementations MUST NOT exchange data on any stream other than
    stream 1 prior to the TLS handshake completing.  However, QUIC
    requires the use of several types of frame for managing loss
    detection and recovery.  In addition, it might be useful to use the
-
-
-
-Thomson                Expires September 17, 2016               [Page 9]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    data acquired during the exchange of unauthenticated messages for
    congestion management.
 
@@ -513,6 +552,15 @@ Internet-Draft                QUIC over TLS                   March 2016
    unauthenticated packet needs tobe limited.  In particular, state
    established by these packets cannot be retained once record
    protection commences.
+
+
+
+
+
+Thomson                Expires September 17, 2016              [Page 10]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
 
    There are several approaches possible for dealing with
    unauthenticated packets prior to handshake completion:
@@ -534,7 +582,8 @@ Internet-Draft                QUIC over TLS                   March 2016
    the type of message.
 
    o  Transport parameters and options are made usable and authenticated
-      as part of the TLS handshake (see Section 6.1 and Section 6.1.2).
+      as part of the TLS handshake (see Section 6.1.1 and
+      Section 6.1.2).
 
    o  Most unprotected messages are treated as fatal errors when
       received except for the small number necessary to permit the
@@ -543,29 +592,34 @@ Internet-Draft                QUIC over TLS                   March 2016
    o  Protected packets can be discarded, but can be saved and later
       used (see Section 6.3).
 
-6.1.  QUIC Transport Parameters
+6.1.  QUIC-Specific Extensions
 
-   Values that are relatively static and won't change over the duration
-   of the TLS handshake can be included in the TLS handshake in Hello
-   extensions.  This ensures that the values are usable immediately and
-   modification is detected.
+   A client describes characteristics of the transport protocol it
+   intends to conduct with the server in a new QUIC-specific extensions
+   in its ClientHello.  The server uses this information to determine
+   whether it wants to continue the connection, request source address
+   validation, or reject the connection.  Having this information
+   unencrypted permits this check to occur prior to committing the
+   resources needed to complete the initial key exchange.
 
-   QUIC transport parameters are added to two new extensions: the
-   "quic_transport_parameters" extension and the "quic_options"
-   extension.
+   If the server decides to complete the connection, it generates a
+   corresponding response and includes it in the EncryptedExtensions
+   message.
+
+   These parameters are not confidentiality-protected when sent by the
+   client, but the server response is protected by the handshake traffic
+   keys.  The entire exchange is integrity protected once the handshake
+   completes.
 
 
 
-
-Thomson                Expires September 17, 2016              [Page 10]
+Thomson                Expires September 17, 2016              [Page 11]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
 
-   These extensions are not confidentiality-protected when sent by the
-   client, but the server response is included in the
-   EncryptedExtensions message and therefore encrypted.  The data
-   contained is integrity protected once the handshake completes.
+   This information is not used by DTLS, but can be passed to the QUIC
+   protocol as initialization parmeters.
 
 6.1.1.  The quic_transport_parameters Extension
 
@@ -576,7 +630,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
       enum {
           receive_buffer(0),
-          (255)
+          (65535)
       } QuicTransportParameterType;
 
       struct {
@@ -587,6 +641,7 @@ Internet-Draft                QUIC over TLS                   March 2016
       struct {
           uint32 connection_initial_window;
           uint32 stream_initial_window;
+          uint32 implicit_shutdown_timeout;
           QuicTransportParameter parameters<0..2^16-1>;
       } QuicTransportParametersExtension;
 
@@ -597,31 +652,12 @@ Internet-Draft                QUIC over TLS                   March 2016
       in QUIC crypto messages, though the QUIC documents are unclear on
       whether a SCFG message can be sent as a top-level message.
 
-   The QuicTransportParameterType identifiers used for this extension
-   identify parameters that apply across every version of QUIC that a
-   client offers to support.  That means that allocations of code points
-   for any version of QUIC makes that code point unavailable to any
-   other version of QUIC that can be concurrently offered by a client.
-
-   Each code point registration has a list of QUIC versions to which it
-   applies.  Multiple different semantics can be attached to a single
-   code point, but they MUST identify mutually exclusive QUIC versions.
-   Versions of QUIC that have different semantics for the same code
-   point can't be offered simultaneously.
-
-
-
-
-
-Thomson                Expires September 17, 2016              [Page 11]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
+   The QuicTransportParameterType identifies parameters.  This is taken
+   from a single space that is shared by all QUIC versions (and options,
+   see Section 6.1.2).
 
    This extension MUST be included if a QUIC version is negotiated.  A
    server MUST NOT negotiate QUIC if this extension is not present.
-   This could mean that a server might consequently send a fatal
-   "no_application_protocol" alert.
 
    Based on the values offered by a client a server MAY use the values
    in this extension to determine whether it wants to continue the
@@ -629,6 +665,14 @@ Internet-Draft                QUIC over TLS                   March 2016
    connection.  Since this extension is initially unencrypted (along
    with ALPN), the server can use the information prior to committing
    the resources needed to complete a key exchange.
+
+
+
+
+Thomson                Expires September 17, 2016              [Page 12]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
 
    If the server decides to use QUIC, this extension MUST be included in
    the EncryptedExtensions message.
@@ -665,15 +709,6 @@ Internet-Draft                QUIC over TLS                   March 2016
    If the server decides to use any QUIC options, includes this
    extension in the EncryptedExtensions message.
 
-
-
-
-
-Thomson                Expires September 17, 2016              [Page 12]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
 6.2.  Unprotected Frames Prior to Handshake Completion
 
    This section describes the handling of messages that are sent and
@@ -682,6 +717,18 @@ Internet-Draft                QUIC over TLS                   March 2016
    Sending and receiving unprotected messages is hazardous.  Unless
    expressly permitted, receipt of an unprotected message of any kind
    MUST be treated as a fatal error.
+
+
+
+
+
+
+
+
+Thomson                Expires September 17, 2016              [Page 13]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
 
 6.2.1.  STREAM Frames
 
@@ -722,14 +769,6 @@ Internet-Draft                QUIC over TLS                   March 2016
 
    The position of the flow control window MUST be reset to defaults
    once the TLS handshake is complete.  This might result in the window
-
-
-
-Thomson                Expires September 17, 2016              [Page 13]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    position for either the connection or stream 1 being smaller than the
    number of octets that have been sent on those streams.  A
    "WINDOW_UPDATE" frame might therefore be necessary to prevent the
@@ -738,7 +777,14 @@ Internet-Draft                QUIC over TLS                   March 2016
    Note:  This is only potentially problematic for servers, who might
       need to send large certificate chains.  This is unlikely given
       that QUIC - like HTTP [RFC7230] - is a protocol where the server
-      is unable to exercise the opportunity to send first.
+      is unable to exercise the opportunity TLS presents to send first.
+
+
+
+Thomson                Expires September 17, 2016              [Page 14]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
 
       If later modifications or extensions to QUIC permit the server to
       send first, a client might reduce the chance of stalling due to
@@ -778,17 +824,9 @@ Internet-Draft                QUIC over TLS                   March 2016
    handshake messages or not.  Similarly, "ACK" and "WINDOW_UPDATE"
    frames might be needed to successfully complete the TLS handshake.
 
-
-
-
-Thomson                Expires September 17, 2016              [Page 14]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    Any timestamps present in "ACK" frames MUST be ignored rather than
-   causing a fatal error.  Timestamps MAY be saved and used once the TLS
-   handshake completes successfully.
+   causing a fatal error.  Timestamps on protected frames MAY be saved
+   and used once the TLS handshake completes successfully.
 
    An endpoint MUST save the last protected "WINDOW_UPDATE" frame it
    receives for each stream and apply the values once the TLS handshake
@@ -796,6 +834,14 @@ Internet-Draft                QUIC over TLS                   March 2016
 
    Editor's Note:  Ugh.  This last one is pretty ugly.  Maybe we should
       just make the TLS handshake exempt from flow control up to the
+
+
+
+Thomson                Expires September 17, 2016              [Page 15]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
+
       Finished message.  Then we can prohibit unauthenticated
       "WINDOW_UPDATE" messages.  We would still likely want to account
       for the packets sent and received, since to do otherwise would
@@ -803,20 +849,20 @@ Internet-Draft                QUIC over TLS                   March 2016
       possible, but it means that we can avoid ugly rules like the
       above.
 
-7.  QUIC Connection ID
+7.  Connection ID
 
-   The connection identifier serves to identify a connection and to
+   The QUIC connection identifier serves to identify a connection and to
    allow a server to resume an existing connection from a new client
    address in case of mobility events.  However, this creates an
    identifier that a passive observer [RFC7258] can use to correlate
    connections.
 
-   TLS 1.3 offers connection resumption using pre-shared keys, which can
-   permit a client to send 0-RTT application data (Note: this is an open
-   issue in TLS).  This mode could be used to continue a connection
-   rather than rely on a publicly visible correlator.  This only
-   requires that servers produce a new ticket on every connection and
-   that clients do not resume from the same ticket more than once.
+   TLS 1.3 offers connection resumption using pre-shared keys, which
+   also allows a client to send 0-RTT application data.  This mode could
+   be used to continue a connection rather than rely on a publicly
+   visible correlator.  This only requires that servers produce a new
+   ticket on every connection and that clients do not resume from the
+   same ticket more than once.
 
    The advantage of relying on 0-RTT modes for mobility events is that
    this is also more robust.  If the new point of attachment results in
@@ -833,15 +879,6 @@ Internet-Draft                QUIC over TLS                   March 2016
    A lightweight state resurrection extension might be used to avoid
    having to recreate any expensive state.
 
-
-
-
-
-Thomson                Expires September 17, 2016              [Page 15]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    Editor's Note:  It's not clear how mobility and public reset
       interact.  If the goal is to allow public reset messages to be
       sent by on-path entities, then using a connection ID to move a
@@ -849,6 +886,17 @@ Internet-Draft                QUIC over TLS                   March 2016
       not seeing the start of the connection and the nonce they need to
       generate the public reset.  A connection restart would avoid this
       issue.
+
+
+
+
+
+
+
+Thomson                Expires September 17, 2016              [Page 16]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
 
 8.  Security Considerations
 
@@ -861,22 +909,11 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 9.  IANA Considerations
 
-   This document has no IANA actions.
+   This document has no IANA actions.  Yet.
 
-   - back
+10.  References
 
-10.  Acknowledgments
-
-   Christian Huitema's knowledge of QUIC is far better than my own.
-   This would be even more inaccurate and useless if not for his
-   assistance.  This document has variously benefited from a long series
-   of discussions with Ryan Hamilton, Jana Iyengar, Adam Langley,
-   Roberto Peon, Ian Swett, and likely many others who are merely
-   forgotten by a faulty meat computer.
-
-11.  References
-
-11.1.  Normative References
+10.1.  Normative References
 
    [I-D.ietf-tls-tls13]
               Rescorla, E., "The Transport Layer Security (TLS) Protocol
@@ -889,15 +926,6 @@ Internet-Draft                QUIC over TLS                   March 2016
               draft-tsvwg-quic-protocol-02 (work in progress), January
               2016.
 
-
-
-
-
-Thomson                Expires September 17, 2016              [Page 16]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    [RFC2119]  Bradner, S., "Key words for use in RFCs to Indicate
               Requirement Levels", BCP 14, RFC 2119,
               DOI 10.17487/RFC2119, March 1997,
@@ -908,44 +936,16 @@ Internet-Draft                QUIC over TLS                   March 2016
               Negotiation Extension", RFC 7301, DOI 10.17487/RFC7301,
               July 2014, <http://www.rfc-editor.org/info/rfc7301>.
 
-11.2.  Informative References
+10.2.  Informative References
 
    [RFC0793]  Postel, J., "Transmission Control Protocol", STD 7,
               RFC 793, DOI 10.17487/RFC0793, September 1981,
               <http://www.rfc-editor.org/info/rfc793>.
 
-   [RFC3711]  Baugher, M., McGrew, D., Naslund, M., Carrara, E., and K.
-              Norrman, "The Secure Real-time Transport Protocol (SRTP)",
-              RFC 3711, DOI 10.17487/RFC3711, March 2004,
-              <http://www.rfc-editor.org/info/rfc3711>.
-
-   [RFC5389]  Rosenberg, J., Mahy, R., Matthews, P., and D. Wing,
-              "Session Traversal Utilities for NAT (STUN)", RFC 5389,
-              DOI 10.17487/RFC5389, October 2008,
-              <http://www.rfc-editor.org/info/rfc5389>.
-
-   [RFC5764]  McGrew, D. and E. Rescorla, "Datagram Transport Layer
-              Security (DTLS) Extension to Establish Keys for the Secure
-              Real-time Transport Protocol (SRTP)", RFC 5764,
-              DOI 10.17487/RFC5764, May 2010,
-              <http://www.rfc-editor.org/info/rfc5764>.
-
-   [RFC6347]  Rescorla, E. and N. Modadugu, "Datagram Transport Layer
-              Security Version 1.2", RFC 6347, DOI 10.17487/RFC6347,
-              January 2012, <http://www.rfc-editor.org/info/rfc6347>.
-
    [RFC7230]  Fielding, R., Ed. and J. Reschke, Ed., "Hypertext Transfer
               Protocol (HTTP/1.1): Message Syntax and Routing",
               RFC 7230, DOI 10.17487/RFC7230, June 2014,
               <http://www.rfc-editor.org/info/rfc7230>.
-
-   [RFC7258]  Farrell, S. and H. Tschofenig, "Pervasive Monitoring Is an
-              Attack", BCP 188, RFC 7258, DOI 10.17487/RFC7258, May
-              2014, <http://www.rfc-editor.org/info/rfc7258>.
-
-
-
-
 
 
 
@@ -954,10 +954,23 @@ Thomson                Expires September 17, 2016              [Page 17]
 Internet-Draft                QUIC over TLS                   March 2016
 
 
+   [RFC7258]  Farrell, S. and H. Tschofenig, "Pervasive Monitoring Is an
+              Attack", BCP 188, RFC 7258, DOI 10.17487/RFC7258, May
+              2014, <http://www.rfc-editor.org/info/rfc7258>.
+
    [RFC7540]  Belshe, M., Peon, R., and M. Thomson, Ed., "Hypertext
               Transfer Protocol Version 2 (HTTP/2)", RFC 7540,
               DOI 10.17487/RFC7540, May 2015,
               <http://www.rfc-editor.org/info/rfc7540>.
+
+Appendix A.  Acknowledgments
+
+   Christian Huitema's knowledge of QUIC is far better than my own.
+   This would be even more inaccurate and useless if not for his
+   assistance.  This document has variously benefited from a long series
+   of discussions with Ryan Hamilton, Jana Iyengar, Adam Langley,
+   Roberto Peon, Ian Swett, and likely many others who are merely
+   forgotten by a faulty meat computer.
 
 Author's Address
 
@@ -965,19 +978,6 @@ Author's Address
    Mozilla
 
    Email: martin.thomson@gmail.com
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
