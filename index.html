@@ -5,7 +5,7 @@
 <head profile="http://www.w3.org/2006/03/hcard http://dublincore.org/documents/2008/08/04/dc-html/">
   <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
 
-  <title>Porting QUIC to Transport Layer Security (DTLS)</title>
+  <title>Porting QUIC to Transport Layer Security (TLS)</title>
 
   <style type="text/css">/*<![CDATA[*/
 @viewport {
@@ -336,7 +336,7 @@ li, p {
     </tbody>
   </table>
 
-  <p class="title">Porting QUIC to Transport Layer Security (DTLS)<br />
+  <p class="title">Porting QUIC to Transport Layer Security (TLS)<br />
   <span class="filename">draft-thomson-quic-tls-latest</span></p>
   
   <h1 id="rfc.abstract">
@@ -484,7 +484,7 @@ li, p {
 <h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#quic-over-tls-structure" id="quic-over-tls-structure">QUIC over TLS Structure</a></h1>
 <p id="rfc.section.3.p.1">QUIC completes its cryptographic handshake on stream 1, which means that the negotiation of keying material happens within the QUIC protocol.  QUIC over TLS does the same, relying on the ordered delivery guarantees provided by QUIC to ensure that the TLS handshake packets are delivered reliably and in order.</p>
 <div id="rfc.figure.3"/>
-<div id="dtls-quic-stack"/>
+<div id="tls-quic-stack"/>
 <pre>
    +-----+---------+
    | TLS |  HTTP   |
@@ -621,7 +621,7 @@ li, p {
 <p id="rfc.section.6.1.p.1">A client describes characteristics of the transport protocol it intends to conduct with the server in a new QUIC-specific extensions in its ClientHello.  The server uses this information to determine whether it wants to continue the connection, request source address validation, or reject the connection.  Having this information unencrypted permits this check to occur prior to committing the resources needed to complete the initial key exchange.</p>
 <p id="rfc.section.6.1.p.2">If the server decides to complete the connection, it generates a corresponding response and includes it in the EncryptedExtensions message.</p>
 <p id="rfc.section.6.1.p.3">These parameters are not confidentiality-protected when sent by the client, but the server response is protected by the handshake traffic keys.  The entire exchange is integrity protected once the handshake completes.</p>
-<p id="rfc.section.6.1.p.4">This information is not used by DTLS, but can be passed to the QUIC protocol as initialization parmeters.</p>
+<p id="rfc.section.6.1.p.4">This information is not used by TLS, but can be passed to the QUIC protocol as initialization parmeters.</p>
 <h3 id="rfc.section.6.1.1"><a href="#rfc.section.6.1.1">6.1.1.</a> <a href="#quic_transport_parameters" id="quic_transport_parameters">The quic_transport_parameters Extension</a></h3>
 <p id="rfc.section.6.1.1.p.1">The <samp>quic_transport_parameters</samp> extension contains a declarative set of parameters that constrain the behaviour of a peer.  This includes the size of the stream- and connection-level flow control windows, plus a set of optional parameters such as the receive buffer size.</p>
 <pre>

@@ -8,7 +8,7 @@ Intended status: Standards Track                          March 16, 2016
 Expires: September 17, 2016
 
 
-            Porting QUIC to Transport Layer Security (DTLS)
+             Porting QUIC to Transport Layer Security (TLS)
                      draft-thomson-quic-tls-latest
 
 Abstract
@@ -618,7 +618,7 @@ Thomson                Expires September 17, 2016              [Page 11]
 Internet-Draft                QUIC over TLS                   March 2016
 
 
-   This information is not used by DTLS, but can be passed to the QUIC
+   This information is not used by TLS, but can be passed to the QUIC
    protocol as initialization parmeters.
 
 6.1.1.  The quic_transport_parameters Extension
