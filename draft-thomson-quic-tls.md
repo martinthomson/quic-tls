@@ -186,8 +186,8 @@ document:
    {{source-address}}).
 
  * A pre-shared key mode can be used for subsequent handshakes to avoid public
-   key operations.  (FFS: 0-RTT for PSK seems feasible, but it isn't clearly
-   defined right now).
+   key operations.  This might be the basis for 0-RTT, even if the remainder of
+   the connection is protected by a new Diffie-Hellman exchange.
 
 
 # QUIC over TLS Structure
@@ -214,7 +214,7 @@ ensure that the TLS handshake packets are delivered reliably and in order.
    |                 UDP                  |
    +--------------------------------------+
 ~~~
-{: #dtls-quic-stack title="QUIC over DTLS"}
+{: #dtls-quic-stack title="QUIC over TLS"}
 
 In this design the QUIC envelope carries QUIC frames until the TLS handshake
 completes.  After the handshake successfully completes the key exchange, QUIC
@@ -233,6 +233,8 @@ Alternative Design:
   negotiation could be subsumed by TLS and ALPN [RFC7301].  The only unprotected
   packets are then public resets and ACK frames, both of which could be given
   first octet values that would easily distinguish them from other TLS packets.
+  This requires that the QUIC sequence numbers be moved to the outside of the
+  record.
 
 
 # Mapping of QUIC to QUIC over TLS
@@ -240,21 +242,27 @@ Alternative Design:
 Several changes to the structure of QUIC are necessary to make a layered design
 practical.
 
-These changes produce the handshake shown in {{quic-tls-handshake}}.  Once
-complete, QUIC frames and forward error control (FEC) messages are encapsulated
-in using TLS record protection.
+These changes produce the handshake shown in {{quic-tls-handshake}}.  In this
+handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.  QUIC is
+responsible for ensuring that the handshake packets are re-sent in case of loss
+and that they can be ordered correctly.
+
+QUIC operates without any record protection until the handshake completes, just
+as TLS over TCP does not include record protection for the handshake messages.
+Once complete, QUIC frames and forward error control (FEC) messages are
+encapsulated in using TLS record protection.
 
 ~~~
     Client                                             Server
 
-   QUIC STREAM Frame (1)
+   QUIC STREAM Frame <stream 1>
     ClientHello
      + QUIC Setup Parameters
      + ALPN ("quic")
-   (Finished)
-   (Replayable QUIC Frames)
-   (end_of_early_data)        -------->
-                                         QUIC STREAM Frame (1)
+   (Finished)                 -------->
+   (Replayable QUIC Frames <any stream>)
+   (end_of_early_data <1>) -------->
+                                         QUIC STREAM Frame <1>
                                                   ServerHello
                                          {EncryptedExtensions}
                                          {ServerConfiguration}
@@ -262,6 +270,7 @@ in using TLS record protection.
                                            {CertificateVerify}
                                                     {Finished}
                              <--------       [QUIC Frames/FEC]
+   QUIC STREAM Frame <1>
    {Finished}                -------->
 
    [QUIC Frames/FEC]         <------->       [QUIC Frames/FEC]
@@ -378,6 +387,16 @@ Note:
   to warrant fragmentation such that partial data could be recovered and used to
   derive traffic keys.
 
+Alternative design:
+
+: We could easily forbid the use of KeyUpdate, which could limit the amount of
+  data that a single connection is able to transfer.  This limit is pretty big.
+
+Alternative design:
+
+: A single epoch bit, sent in the clear, would also address this concern.  QUIC
+  does have some spare bits available, such as the bit used for entropy.
+
 
 # Pre-handshake QUIC Messages {#pre-handshake}
 
@@ -429,7 +448,7 @@ encrypted.  The data contained is integrity protected once the handshake
 completes.
 
 
-### The quic_transport_parameters Extension
+### The quic_transport_parameters Extension {#quic_transport_parameters}
 
 The `quic_transport_parameters` extension contains a declarative set of
 parameters that constrain the behaviour of a peer.  This includes the size of
@@ -439,7 +458,7 @@ parameters such as the receive buffer size.
 ~~~
    enum {
        receive_buffer(0),
-       (255)
+       (65535)
    } QuicTransportParameterType;
 
    struct {
@@ -463,20 +482,12 @@ Editor's Note:
   though the QUIC documents are unclear on whether a SCFG message can be sent as
   a top-level message.
 
-The QuicTransportParameterType identifiers used for this extension identify
-parameters that apply across every version of QUIC that a client offers to
-support.  That means that allocations of code points for any version of QUIC
-makes that code point unavailable to any other version of QUIC that can be
-concurrently offered by a client.
-
-Each code point registration has a list of QUIC versions to which it applies.
-Multiple different semantics can be attached to a single code point, but they
-MUST identify mutually exclusive QUIC versions.  Versions of QUIC that have
-different semantics for the same code point can't be offered simultaneously.
+The QuicTransportParameterType identifies parameters.  This is taken from a
+single space that is shared by all QUIC versions (and options, see
+{{quic_options}}).
 
 This extension MUST be included if a QUIC version is negotiated.  A server MUST
-NOT negotiate QUIC if this extension is not present.  This could mean that a
-server might consequently send a fatal `no_application_protocol` alert.
+NOT negotiate QUIC if this extension is not present.
 
 Based on the values offered by a client a server MAY use the values in this
 extension to determine whether it wants to continue the connection, request
@@ -582,8 +593,8 @@ Note:
 
 : This is only potentially problematic for servers, who might need to send large
   certificate chains.  This is unlikely given that QUIC - like HTTP [RFC7230] -
-  is a protocol where the server is unable to exercise the opportunity to send
-  first.
+  is a protocol where the server is unable to exercise the opportunity TLS
+  presents to send first.
 
 : If later modifications or extensions to QUIC permit the server to send first,
   a client might reduce the chance of stalling due to flow control in this first
@@ -624,8 +635,8 @@ decrypted to determine if they are TLS handshake messages or not.  Similarly,
 TLS handshake.
 
 Any timestamps present in `ACK` frames MUST be ignored rather than causing a
-fatal error.  Timestamps MAY be saved and used once the TLS handshake completes
-successfully.
+fatal error.  Timestamps on protected frames MAY be saved and used once the TLS
+handshake completes successfully.
 
 An endpoint MUST save the last protected `WINDOW_UPDATE` frame it receives for
 each stream and apply the values once the TLS handshake completes.
@@ -640,19 +651,18 @@ Editor's Note:
   means that we can avoid ugly rules like the above.
 
 
-# QUIC Connection ID
+# Connection ID
 
-The connection identifier serves to identify a connection and to allow a server
-to resume an existing connection from a new client address in case of mobility
-events.  However, this creates an identifier that a passive observer [RFC7258]
-can use to correlate connections.
+The QUIC connection identifier serves to identify a connection and to allow a
+server to resume an existing connection from a new client address in case of
+mobility events.  However, this creates an identifier that a passive observer
+[RFC7258] can use to correlate connections.
 
-TLS 1.3 offers connection resumption using pre-shared keys, which can permit a
-client to send 0-RTT application data (Note: this is an open issue in TLS).
-This mode could be used to continue a connection rather than rely on a publicly
-visible correlator.  This only requires that servers produce a new ticket on
-every connection and that clients do not resume from the same ticket more than
-once.
+TLS 1.3 offers connection resumption using pre-shared keys, which also allows a
+client to send 0-RTT application data.  This mode could be used to continue a
+connection rather than rely on a publicly visible correlator.  This only
+requires that servers produce a new ticket on every connection and that clients
+do not resume from the same ticket more than once.
 
 The advantage of relying on 0-RTT modes for mobility events is that this is also
 more robust.  If the new point of attachment results in contacting a new server
@@ -687,10 +697,10 @@ doesn't affect security.  Most of this document does.
 
 # IANA Considerations
 
-This document has no IANA actions.
+This document has no IANA actions.  Yet.
 
 
--- back
+--- back
 
 # Acknowledgments
 
