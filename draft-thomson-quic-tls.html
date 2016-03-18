@@ -304,7 +304,7 @@ li, p {
 
   <meta name="dct.creator" content="Thomson, M." />
   <meta name="dct.identifier" content="urn:ietf:id:draft-thomson-quic-tls-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-3-16" />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-3-18" />
   <meta name="dct.abstract" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
   <meta name="description" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
 
@@ -325,10 +325,10 @@ li, p {
 </tr>
 <tr>
   <td class="left">Intended status: Standards Track</td>
-  <td class="right">March 16, 2016</td>
+  <td class="right">March 18, 2016</td>
 </tr>
 <tr>
-  <td class="left">Expires: September 17, 2016</td>
+  <td class="left">Expires: September 19, 2016</td>
   <td class="right"></td>
 </tr>
 
@@ -349,7 +349,7 @@ li, p {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on September 17, 2016.</p>
+<p>This Internet-Draft will expire on September 19, 2016.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -571,31 +571,18 @@ li, p {
 <p id="rfc.section.4.2.p.3">A server that is under load might include the same information in the cookie extension/field of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not include the ability to include a cookie in HelloRetryRequest.)</p>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#record-protection" id="record-protection">Record Protection</a></h1>
 <p id="rfc.section.5.p.1">Each TLS record is encapsulated in the QUIC envelope.  This provides length information, which means that the length field can be dropped from the TLS record.</p>
-<p id="rfc.section.5.p.2">The sequence number used by TLS record protection is changed to deal with the potential for packets to be dropped or lost.  The QUIC sequence number is used in place of the monotonically increasing TLS record sequence number.</p>
-<p id="rfc.section.5.p.3">This represents a significant change to TLS record protection and the guarantees that it provides.  QUIC has a single, contiguous sequence number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.</p>
-<p id="rfc.section.5.p.4">The restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).  In comparison, QUIC does not rely on this having integrity for a continuous sequence of application data packets.  Since QUIC is UDP-based, it is trivial for either an attacker or random chance to cause truncation of the squence of packets at any time.</p>
-<p id="rfc.section.5.p.5">QUIC deals with this by providing authenticated repair mechansims that operate above the layer of encryption.  QUIC can therefore operate without restarting sequence numbers.</p>
+<p id="rfc.section.5.p.2">The sequence number used by TLS record protection is changed to deal with the potential for packets to be dropped or lost.  The QUIC sequence number is used in place of the monotonically increasing TLS record sequence number.  This means that the TLS record protection employed is closer to DTLS in both its form and the guarantees that are provided.</p>
+<p id="rfc.section.5.p.3">QUIC has a single, contiguous sequence number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.  The sequence number restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).</p>
+<p id="rfc.section.5.p.4">QUIC does not rely on there being a continuous sequence of application data packets; QUIC uses authenticated repair mechansims that operate above the layer of encryption.  QUIC can therefore operate without restarting sequence numbers.</p>
 <h2 id="rfc.section.5.1"><a href="#rfc.section.5.1">5.1.</a> <a href="#alternative-design-exporters" id="alternative-design-exporters">Alternative Design: Exporters</a></h2>
 <p id="rfc.section.5.1.p.1">An exporter could be used to provide keying material for a QUIC-specific record protection.  This could draw on the selected cipher suite and the TLS record protection design so that the overall effort required to design and analyze is kept minimal.</p>
 <p id="rfc.section.5.1.p.2">One concern with using exporters is that TLS doesn&#8217;t define an exporter for use prior to the end of the handshake.  That means the creation of a special exporter for use in protecting 0-RTT data.  That&#8217;s a pretty sharp object to leave lying around, and it&#8217;s not clear what the properties we could provide.  (That doesn&#8217;t mean that there wouldn&#8217;t be demand for such a thing, the possibility has already been raised.)</p>
 <p id="rfc.section.5.1.p.3">In the end, using an exporter doesn&#8217;t alter the design significantly.  Given the risks, a modification to the record protocol is probably safer.</p>
 <h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#key-update" id="key-update">Key Update</a></h2>
-<p id="rfc.section.5.2.p.1">Each time that the TLS record protection keys are changed, the message initiating the change could be lost.  This results in subsequent packets being indecipherable to the peer that receives them.  Key changes happen during the handshake directly after ClientHello or ServerHello messages and they occur immediately after a KeyUpdate message.</p>
-<p id="rfc.section.5.2.p.2">TLS relies on an ordered, reliable transport and therefore provides no other mechanism to ensure that a peer receives the message initiating a key change prior to receiving the subsequent messages that are protected using the new key.</p>
-<p id="rfc.section.5.2.p.3">A peer that receives an indecipherable packet immediately following a lost packet is therefore required to test whether the incoming packet can be decrypted under an imminent traffic key.  If the packet cannot be decrypted, then it is dropped.  If the packet can be decrypted under the new traffic key, it MUST switch to using that new traffic key for all subsequent packets.</p>
-<p id="rfc.section.5.2.p.4">This logic isn&#8217;t necessary for a server receiving a ClientHello.  In that case, the client cannot send encrypted data until it receives a ServerHello.  If a ClientHello is dropped, then any 0-RTT data that is sent by the client cannot be decrypted and is discarded.</p>
-<p id="rfc.section.5.2.p.5">Key update messages MUST still be sent reliably, even though a peer can operate without receiving the message.  A peer MUST NOT speculatively decrypt packets until it has sent an acknowledgment for the key update (or handshake message) that caused the current record protection keys to be emplaced.</p>
-<p id="rfc.section.5.2.p.6">To limit the number of keys that a receiver needs to test, a peer MUST await a positive acknowledgement for a key update message before sending another.  Also, a peer MUST await the completion of the TLS handshake before initiating a key update.</p>
-<p/>
-
-<dl>
-  <dt>Note:</dt>
-  <dd style="margin-left: 8">This section doesn&#8217;t deal with partial loss of these packets for simplicity reasons.  It would be highly unlikely that these packets would be large enough to warrant fragmentation such that partial data could be recovered and used to derive traffic keys.</dd>
-  <dt>Alternative design:</dt>
-  <dd style="margin-left: 8">We could easily forbid the use of KeyUpdate, which could limit the amount of data that a single connection is able to transfer.  This limit is pretty big, but maybe not big enough.</dd>
-  <dt>Alternative design:</dt>
-  <dd style="margin-left: 8">A single epoch bit, sent in the clear, would also address this concern.  QUIC does have some spare bits available, such as the bit used for entropy.</dd>
-</dl>
+<p id="rfc.section.5.2.p.1">Each time that the TLS record protection keys are changed, the message initiating the change could be lost.  This results in subsequent packets being indecipherable to the peer that receives them.  Key changes happen at the conclusion of the handshake and and immediately after a KeyUpdate message.</p>
+<p id="rfc.section.5.2.p.2">The record protection used for the TLS handshake does not apply to other QUIC messages and so does not need special treatment.</p>
+<p id="rfc.section.5.2.p.3">TLS relies on an ordered, reliable transport and therefore provides no other mechanism to ensure that a peer receives the message initiating a key change prior to receiving the subsequent messages that are protected using the new key.  A similar mechanism here would introduce head-of-line blocking.</p>
+<p id="rfc.section.5.2.p.4">The simplest solution here is to steal a single bit from the unprotected part of the QUIC header that signals key updates, similar to how DTLS operates.  Each time this bit changes, an attempt is made to update the keys used to read.  Peers are prohibited from sending multiple KeyUpdate messages until they see a reciprocal KeyUpdate to prevent the possibility of a change from being undetectable as a result of two changes in this bit.</p>
 <h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#pre-handshake" id="pre-handshake">Pre-handshake QUIC Messages</a></h1>
 <p id="rfc.section.6.p.1">Implementations MUST NOT exchange data on any stream other than stream 1 prior to the TLS handshake completing.  However, QUIC requires the use of several types of frame for managing loss detection and recovery.  In addition, it might be useful to use the data acquired during the exchange of unauthenticated messages for congestion management.</p>
 <p id="rfc.section.6.p.2">The actions that a peer takes as a result of receiving an unauthenticated packet needs tobe limited.  In particular, state established by these packets cannot be retained once record protection commences.</p>
@@ -688,9 +675,10 @@ li, p {
   <dd style="margin-left: 8">This prohibition might be a little too strong, but this is the only obviously safe option.  If the amount of damage that an attacker can do by modifying timestamps is limited, then it might be OK to permit the inclusion of timestamps.  Note that an attacker need not be on-path to inject an ACK.</dd>
 </dl>
 <h3 id="rfc.section.6.2.3"><a href="#rfc.section.6.2.3">6.2.3.</a> <a href="#windowupdate-frames" id="windowupdate-frames">WINDOW_UPDATE Frames</a></h3>
-<p id="rfc.section.6.2.3.p.1">Sending a <samp>WINDOW_UPDATE</samp> on streams 0 or 1 might be necessary to permit the completion of the TLS handshake, particularly in cases where the certification path is lengthy.  To avoid stalling due to flow control exhaustion, <samp>WINDOW_UPDATE</samp> frames with stream 0 or 1 are permitted.</p>
-<p id="rfc.section.6.2.3.p.2">Receiving a <samp>WINDOW_UPDATE</samp> frame on any other stream MUST be treated as a fatal error.</p>
-<p id="rfc.section.6.2.3.p.3">The position of the flow control window MUST be reset to defaults once the TLS handshake is complete.  This might result in the window position for either the connection or stream 1 being smaller than the number of octets that have been sent on those streams.  A <samp>WINDOW_UPDATE</samp> frame might therefore be necessary to prevent the connection from being stalled.</p>
+<p id="rfc.section.6.2.3.p.1">Sending a <samp>WINDOW_UPDATE</samp> on stream 1 might be necessary to permit the completion of the TLS handshake, particularly in cases where the certification path is lengthy.  To avoid stalling due to flow control exhaustion, <samp>WINDOW_UPDATE</samp> frames with stream 1 are permitted.</p>
+<p id="rfc.section.6.2.3.p.2">Receiving a <samp>WINDOW_UPDATE</samp> frame on streams other than 1 MUST be treated as a fatal error.</p>
+<p id="rfc.section.6.2.3.p.3">Stream 1 is exempt from the connection-level flow control window.</p>
+<p id="rfc.section.6.2.3.p.4">The position of the flow control window MUST be reset to defaults once the TLS handshake is complete.  This might result in the window position for either the connection or stream 1 being smaller than the number of octets that have been sent on those streams.  A <samp>WINDOW_UPDATE</samp> frame might therefore be necessary to prevent the connection from being stalled.</p>
 <p/>
 
 <dl>
