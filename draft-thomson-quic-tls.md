@@ -322,24 +322,21 @@ record.
 
 The sequence number used by TLS record protection is changed to deal with the
 potential for packets to be dropped or lost.  The QUIC sequence number is used
-in place of the monotonically increasing TLS record sequence number.
+in place of the monotonically increasing TLS record sequence number.  This means
+that the TLS record protection employed is closer to DTLS in both its form and
+the guarantees that are provided.
 
-This represents a significant change to TLS record protection and the guarantees
-that it provides.  QUIC has a single, contiguous sequence number space.  In
-comparison, TLS restarts its sequence number each time that record protection
-keys are changed.
+QUIC has a single, contiguous sequence number space.  In comparison, TLS
+restarts its sequence number each time that record protection keys are changed.
+The sequence number restart in TLS ensures that a compromise of the current
+traffic keys does not allow an attacker to truncate the data that is sent after
+a key update by sending additional packets under the old key (causing new
+packets to be discarded).
 
-The restart in TLS ensures that a compromise of the current traffic keys does
-not allow an attacker to truncate the data that is sent after a key update by
-sending additional packets under the old key (causing new packets to be
-discarded).  In comparison, QUIC does not rely on this having integrity for a
-continuous sequence of application data packets.  Since QUIC is UDP-based, it is
-trivial for either an attacker or random chance to cause truncation of the
-squence of packets at any time.
+QUIC does not rely on there being a continuous sequence of application data
+packets; QUIC uses authenticated repair mechansims that operate above the layer
+of encryption.  QUIC can therefore operate without restarting sequence numbers.
 
-QUIC deals with this by providing authenticated repair mechansims that operate
-above the layer of encryption.  QUIC can therefore operate without restarting
-sequence numbers.
 
 ## Alternative Design: Exporters
 
@@ -363,53 +360,23 @@ risks, a modification to the record protocol is probably safer.
 
 Each time that the TLS record protection keys are changed, the message
 initiating the change could be lost.  This results in subsequent packets being
-indecipherable to the peer that receives them.  Key changes happen during the
-handshake directly after ClientHello or ServerHello messages and they occur
-immediately after a KeyUpdate message.
+indecipherable to the peer that receives them.  Key changes happen at the
+conclusion of the handshake and and immediately after a KeyUpdate message.
+
+The record protection used for the TLS handshake does not apply to other QUIC
+messages and so does not need special treatment.
 
 TLS relies on an ordered, reliable transport and therefore provides no other
 mechanism to ensure that a peer receives the message initiating a key change
 prior to receiving the subsequent messages that are protected using the new
-key.
+key.  A similar mechanism here would introduce head-of-line blocking.
 
-A peer that receives an indecipherable packet immediately following a lost
-packet is therefore required to test whether the incoming packet can be
-decrypted under an imminent traffic key.  If the packet cannot be decrypted,
-then it is dropped.  If the packet can be decrypted under the new traffic key,
-it MUST switch to using that new traffic key for all subsequent packets.
-
-This logic isn't necessary for a server receiving a ClientHello.  In that case,
-the client cannot send encrypted data until it receives a ServerHello.  If a
-ClientHello is dropped, then any 0-RTT data that is sent by the client cannot be
-decrypted and is discarded.
-
-Key update messages MUST still be sent reliably, even though a peer can operate
-without receiving the message.  A peer MUST NOT speculatively decrypt packets
-until it has sent an acknowledgment for the key update (or handshake message)
-that caused the current record protection keys to be emplaced.
-
-To limit the number of keys that a receiver needs to test, a peer MUST await a
-positive acknowledgement for a key update message before sending another.  Also,
-a peer MUST await the completion of the TLS handshake before initiating a key
-update.
-
-Note:
-
-: This section doesn't deal with partial loss of these packets for simplicity
-  reasons.  It would be highly unlikely that these packets would be large enough
-  to warrant fragmentation such that partial data could be recovered and used to
-  derive traffic keys.
-
-Alternative design:
-
-: We could easily forbid the use of KeyUpdate, which could limit the amount of
-  data that a single connection is able to transfer.  This limit is pretty big,
-  but maybe not big enough.
-
-Alternative design:
-
-: A single epoch bit, sent in the clear, would also address this concern.  QUIC
-  does have some spare bits available, such as the bit used for entropy.
+The simplest solution here is to steal a single bit from the unprotected part of
+the QUIC header that signals key updates, similar to how DTLS operates.  Each
+time this bit changes, an attempt is made to update the keys used to read.
+Peers are prohibited from sending multiple KeyUpdate messages until they see a
+reciprocal KeyUpdate to prevent the possibility of a change from being
+undetectable as a result of two changes in this bit.
 
 
 # Pre-handshake QUIC Messages {#pre-handshake}
@@ -594,13 +561,15 @@ Editor's Note:
 
 ### WINDOW_UPDATE Frames
 
-Sending a `WINDOW_UPDATE` on streams 0 or 1 might be necessary to permit the
+Sending a `WINDOW_UPDATE` on stream 1 might be necessary to permit the
 completion of the TLS handshake, particularly in cases where the certification
 path is lengthy.  To avoid stalling due to flow control exhaustion,
-`WINDOW_UPDATE` frames with stream 0 or 1 are permitted.
+`WINDOW_UPDATE` frames with stream 1 are permitted.
 
-Receiving a `WINDOW_UPDATE` frame on any other stream MUST be treated as a fatal
-error.
+Receiving a `WINDOW_UPDATE` frame on streams other than 1 MUST be treated as a
+fatal error.
+
+Stream 1 is exempt from the connection-level flow control window.
 
 The position of the flow control window MUST be reset to defaults once the TLS
 handshake is complete.  This might result in the window position for either the
