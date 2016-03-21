@@ -680,9 +680,9 @@ li, p {
 
 <dl>
   <dt>Note:</dt>
-  <dd style="margin-left: 8">This is only potentially problematic for servers, who might need to send large certificate chains.  This is unlikely given that QUIC - like HTTP <a href="#RFC7230">[RFC7230]</a> - is a protocol where the server is unable to exercise the opportunity TLS presents to send first.</dd>
+  <dd style="margin-left: 8">This is only potentially problematic for servers, who might need to send large certificate chains.  In other cases, this is unlikely given that QUIC - like HTTP <a href="#RFC7230">[RFC7230]</a> - is a protocol where the server is unable to exercise the opportunity TLS presents to send first.</dd>
   <dt></dt>
-  <dd style="margin-left: 8">If later modifications or extensions to QUIC permit the server to send first, a client might reduce the chance of stalling due to flow control in this first round trip by setting larger values for the initial stream and connection flow control windows using the <samp>quic_parameters</samp> extension (<a href="#quic_parameters">Section 6.1</a>).</dd>
+  <dd style="margin-left: 8">If a server has a large certificate chain, or later modifications or extensions to QUIC permit the server to send first, a client might reduce the chance of stalling due to flow control in this first round trip by setting larger values for the initial stream and connection flow control windows using the <samp>quic_parameters</samp> extension (<a href="#quic_parameters">Section 6.1</a>).</dd>
   <dt>Editor&#8217;s Note:</dt>
   <dd style="margin-left: 8">Unlike <samp>ACK</samp>, the prohibition on <samp>WINDOW_UPDATE</samp> is much less of an imposition on implementations.  And, given that a spurious <samp>WINDOW_UPDATE</samp> might be used to create a great deal of memory pressure on an endpoint, the restriction seems justifiable.  Besides, I understand this one a lot better.</dd>
 </dl>
