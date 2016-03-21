@@ -254,7 +254,6 @@ encapsulated in using TLS record protection.
    QUIC STREAM Frame <stream 1>
     ClientHello
      + QUIC Setup Parameters
-     + ALPN ("quic")
    (Finished)                 -------->
    (Replayable QUIC Frames <any stream>)
    (end_of_early_data <1>) -------->
@@ -277,23 +276,22 @@ The remainder of this document describes the changes to QUIC and TLS that allow
 the protocols to operate together.
 
 
-## Protocol and Version Negotiation
+## Protocol and Version Negotiation {#version-negotiation}
 
 The QUIC version negotiation mechanism is used to negotiate the version of QUIC
 that is used prior to the completion of the handshake.  However, this packet is
 not authenticated, enabling an active attacker to force a version downgrade.
 
-Each QUIC version has an equivalent Application Layer Protocol Negotiation
-(ALPN) [RFC7301] label defined.  If the version that is negotiated by QUIC
-subsequently disagrees with the version negotiated using ALPN, then the
-handshake MUST be terminated with a fatal error.
+To ensure that a QUIC version downgrade is not forced by an attacker, version
+information is copied into the TLS handshake, which provides integrity
+protection for the QUIC negotiation.  This doesn't prevent version downgrade
+during the handshake, though it does prevent a connection from completing with a
+downgraded version, see {{quic_parameters}}.
 
-The following versions are defined:
+ISSUE:
 
-| ALPN label | QUIC version |
-|:--|:--|
-| "quic-xx" | 0x12345678 |
-| "quic-yy" | 0x90abcedf |
+: The QUIC version negotiation has poor performance in the event that a client
+  is forced to downgrade from their preferred version.
 
 
 ## Source Address Validation {#source-address}
@@ -338,6 +336,66 @@ packets; QUIC uses authenticated repair mechansims that operate above the layer
 of encryption.  QUIC can therefore operate without restarting sequence numbers.
 
 
+## TLS Handshake Encryption
+
+TLS 1.3 adds encryption for handshake messages.  This introduces an additional
+transition between different record protection keys during the handshake.  A
+consequence of this is that it becomes more important to explicitly identify the
+transition from one set of keys to the next (see {{key-update}}).
+
+
+## Key Update {#key-update}
+
+Each time that the TLS record protection keys are changed, the message
+initiating the change could be lost.  This results in subsequent packets being
+indecipherable to the peer that receives them.  Key changes happen at the
+conclusion of the handshake and and immediately after a KeyUpdate message.
+
+TLS relies on an ordered, reliable transport and therefore provides no other
+mechanism to ensure that a peer receives the message initiating a key change
+prior to receiving the subsequent messages that are protected using the new
+key.  A similar mechanism here would introduce head-of-line blocking.
+
+The simplest solution here is to steal a single bit from the unprotected part of
+the QUIC header that signals key updates, similar to how DTLS signals the epoch
+on each packet.  The epoch bit is encoded into 0x80 of the QUIC public flags.
+
+Each time the epoch bit changes, an attempt is made to update the keys used to
+read.  Peers are prohibited from sending multiple KeyUpdate messages until they
+see a reciprocal KeyUpdate to prevent the chance that a transition is undetected
+as a result of two changes in this bit.
+
+The transition from cleartext to encrypted packets is exempt from this limit of
+one key change.  Two key changes occur during the handshake.  The server sends
+packets in the clear, plus packets protected using handshake and application
+data keys.  With only a single bit available to discriminate between keys,
+packets protected with the application data keys will have the same bit value as
+cleartext packets.  This condition will be easily identified and handled, likely
+by discarding the application data, since the encrypted packets will be highly
+unlikely to be valid.
+
+
+## Sequence Number Reconstruction
+
+Each peer maintains a 48-bit send sequence number that is incremented with each
+packet that is sent (even retransmissions).  The least significant 8-, 16-, 32-,
+or 48-bits of this number is encoded in the QUIC sequence number field in every
+packet.  A 16-bit send epoch number is maintained; the epoch is incremented each
+time new record protection keying material is used.  The least significant bit
+of the epoch number is encoded into the epoch bit (0x80) of the QUIC public flags.
+
+A receiver maintains the same values, but recovers values based on the packets
+it receives.  This is based on the sequence number of packets that it has
+received.  A simple scheme predicts the receive sequence number of an incoming
+packet by incrementing the sequence number of the most recent packet to be
+successfully decrypted by one and expecting the sequence number to be within a
+range centered on that value.  The receive epoch value is incremented each time
+that the epoch bit (0x80) changes.
+
+The sequence number used for record protection is the 64-bit value obtained by
+concatenating the epoch and sequence number, both in network byte order.
+
+
 ## Alternative Design: Exporters
 
 An exporter could be used to provide keying material for a QUIC-specific record
@@ -352,31 +410,13 @@ leave lying around, and it's not clear what the properties we could provide.
 (That doesn't mean that there wouldn't be demand for such a thing, the
 possibility has already been raised.)
 
+An exporter-based scheme might opt not to use the handshake traffic keys to
+protect QUIC packets during the handshake, relying instead on separate
+protection for the TLS handshake records.  This complicates implementations
+somewhat, so an exporter might still be used.
+
 In the end, using an exporter doesn't alter the design significantly.  Given the
 risks, a modification to the record protocol is probably safer.
-
-
-## Key Update
-
-Each time that the TLS record protection keys are changed, the message
-initiating the change could be lost.  This results in subsequent packets being
-indecipherable to the peer that receives them.  Key changes happen at the
-conclusion of the handshake and and immediately after a KeyUpdate message.
-
-The record protection used for the TLS handshake does not apply to other QUIC
-messages and so does not need special treatment.
-
-TLS relies on an ordered, reliable transport and therefore provides no other
-mechanism to ensure that a peer receives the message initiating a key change
-prior to receiving the subsequent messages that are protected using the new
-key.  A similar mechanism here would introduce head-of-line blocking.
-
-The simplest solution here is to steal a single bit from the unprotected part of
-the QUIC header that signals key updates, similar to how DTLS operates.  Each
-time this bit changes, an attempt is made to update the keys used to read.
-Peers are prohibited from sending multiple KeyUpdate messages until they see a
-reciprocal KeyUpdate to prevent the possibility of a change from being
-undetectable as a result of two changes in this bit.
 
 
 # Pre-handshake QUIC Messages {#pre-handshake}
@@ -405,7 +445,7 @@ Different strategies are appropriate for different types of data.  This document
 proposes that all strategies are possible depending on the type of message.
 
 * Transport parameters and options are made usable and authenticated as part of
-  the TLS handshake (see {{quic_transport_parameters}} and {{quic_options}}).
+  the TLS handshake (see {{quic_parameters}}).
 * Most unprotected messages are treated as fatal errors when received except for
   the small number necessary to permit the handshake to complete (see
   {{pre-handshake-unprotected}}).
@@ -413,10 +453,10 @@ proposes that all strategies are possible depending on the type of message.
   {{pre-handshake-protected}}).
 
 
-## QUIC-Specific Extensions {#quic-extensions}
+## QUIC Extension {#quic_parameters}
 
 A client describes characteristics of the transport protocol it intends to
-conduct with the server in a new QUIC-specific extensions in its ClientHello.
+conduct with the server in a new QUIC-specific extension in its ClientHello.
 The server uses this information to determine whether it wants to continue the
 connection, request source address validation, or reject the connection.  Having
 this information unencrypted permits this check to occur prior to committing the
@@ -432,13 +472,10 @@ exchange is integrity protected once the handshake completes.
 This information is not used by TLS, but can be passed to the QUIC protocol as
 initialization parmeters.
 
-
-### The quic_transport_parameters Extension {#quic_transport_parameters}
-
-The `quic_transport_parameters` extension contains a declarative set of
-parameters that constrain the behaviour of a peer.  This includes the size of
-the stream- and connection-level flow control windows, plus a set of optional
-parameters such as the receive buffer size.
+The `quic_parameters` extension contains a declarative set of parameters that
+establish QUIC operating parameters and constrain the behaviour of a peer.  The
+connection identifier and version are first negotiated using QUIC, and are
+included in the TLS handshake in order to provide integrity protection.
 
 ~~~
    enum {
@@ -451,26 +488,23 @@ parameters such as the receive buffer size.
        uint32 value;
    } QuicTransportParameter;
 
+   uint32 QuicVersion;
+
+   enum {
+       (65535)
+   } QuicOption;
+
    struct {
+       uint64 connection_id;
+       QuicVersion quic_version;
+       QuicVersion supported_quic_versions<0..2^8-1>;
        uint32 connection_initial_window;
        uint32 stream_initial_window;
        uint32 implicit_shutdown_timeout;
-       QuicTransportParameter parameters<0..2^16-1>;
-   } QuicTransportParametersExtension;
+       QuicTransportParameter transport_parameters<0..2^16-1>;
+       QuicOption options<0..2^8-2>;
+   } QuicParametersExtension;
 ~~~
-
-These values can be updated once the connection has started by sending an
-authenticated -SOMETHING- frame on stream -SOMETHING-.
-
-Editor's Note:
-
-: It would appear that these settings are encapsulated in QUIC crypto messages,
-  though the QUIC documents are unclear on whether a SCFG message can be sent as
-  a top-level message.
-
-The QuicTransportParameterType identifies parameters.  This is taken from a
-single space that is shared by all QUIC versions (and options, see
-{{quic_options}}).
 
 This extension MUST be included if a QUIC version is negotiated.  A server MUST
 NOT negotiate QUIC if this extension is not present.
@@ -478,46 +512,80 @@ NOT negotiate QUIC if this extension is not present.
 Based on the values offered by a client a server MAY use the values in this
 extension to determine whether it wants to continue the connection, request
 source address validation, or reject the connection.  Since this extension is
-initially unencrypted (along with ALPN), the server can use the information
-prior to committing the resources needed to complete a key exchange.
+initially unencrypted, the server can use the information prior to committing
+the resources needed to complete a key exchange.
 
 If the server decides to use QUIC, this extension MUST be included in the
 EncryptedExtensions message.
 
+The parameters are:
 
-### The quic_options Extension {#quic_options}
+connection_id:
 
-The `quic_options` extension includes a list of options that can be negotiated
-for a given connection.  These are set during the initial handshake and are
-fixed thereafter.  These options are used to enable or disable optional features
-in the protocol.
+: The 64-bit connection identifier for the connection, as selected by the
+  client.
 
-~~~
-   enum {
-       (65535)
-   } QuicOption;
+quic_version:
 
-   struct {
-       QuicOption options<0..2^8-2>;
-   } QuicOptionsExtension;
-~~~
+: The currently selected QUIC version that is used for the connection.  This is
+  the version negotiated using the unauthenticated QUIC version negotiation
+  ({{version-negotiation}}).
 
-The set of features that are supported across different versions might vary.  A
-client SHOULD include all options that it is willing to use.  The server MAY
-select any subset of those options that apply to the version of QUIC that it
-selects.  Only those options selected by the server are available for use.
+supported_quic_versions:
 
-Note:
+: This is a list of supported QUIC versions for each peer.  A client sends an
+  empty list if the version of QUIC being used is their preferred version;
+  however, a client MUST include their preferred version if this was not
+  negotiated using QUIC version negotiation.  A server MUST include all versions
+  that it supports in this list.
 
-: This sort of optional behaviour seems like it could be accommodated adequately
-  by defining new versions of QUIC for each experiment.  However, as an evolving
-  protocol, multiple experiments need to be conducted concurrently and
-  continuously, which would overload the ALPN space.  This extension provides a
-  flexible way to regulate which experiments are enabled on a per-connection
-  basis.
+connection_initial_window:
 
-If the server decides to use any QUIC options, includes this extension in the
-EncryptedExtensions message.
+: The initial value for the connection flow control window for the endpoint, in
+  octets.
+
+connection_initial_window:
+
+: The initial value for the flow control window of new streams created by the
+  peer endpoint, in octets.
+
+implicit_shutdown_timeout:
+
+: The time, in seconds, that a connection can remain idle before being
+  implicitly shutdown.
+
+transport_parameters:
+
+: A list of parameters for the QUIC connection, expressed as key-value pairs of
+  arbitrary length.  The QuicTransportParameterType identifies each parameter;
+  duplicate types are not permitted and MUST be rejected with a fatal
+  illegal_parameter alert.  Type values are taken from a single space that is
+  shared by all QUIC versions.
+
+  ISSUE:
+
+  : There is currently no way to update the value of parameters once the
+    connection has started.  QUIC crypto provided a SCFG message that could be
+    sent after the connection was established.
+
+options:
+
+: A list of options that can be negotiated for a given connection.  These are
+  set during the initial handshake and are fixed thereafter.  These options are
+  used to enable or disable optional features in the protocol.
+
+  The set of features that are supported across different versions might vary.
+  A client SHOULD include all options that it is willing to use.  The server MAY
+  select any subset of those options that apply to the version of QUIC that it
+  selects.  Only those options selected by the server are available for use.
+
+  Note:
+
+  : This sort of optional behaviour seems like it could be accommodated
+    adequately by defining new versions of QUIC for each experiment.  However,
+    as an evolving protocol, multiple experiments need to be conducted
+    concurrently and continuously.  The options parameter provides a flexible
+    way to regulate which experiments are enabled on a per-connection basis.
 
 
 ## Unprotected Frames Prior to Handshake Completion {#pre-handshake-unprotected}
@@ -587,7 +655,7 @@ Note:
 : If later modifications or extensions to QUIC permit the server to send first,
   a client might reduce the chance of stalling due to flow control in this first
   round trip by setting larger values for the initial stream and connection flow
-  control windows using the `quic_transport_parameters` extension.
+  control windows using the `quic_parameters` extension ({{quic_parameters}}).
 
 Editor's Note:
 
@@ -657,21 +725,13 @@ more robust.  If the new point of attachment results in contacting a new server
 instance - one that lacks the session state - then a fallback is easy.
 
 The main drawback with a clean restart or anything resembling a restart is that
-accumulated state can be lost.  In particular, the state of the HPACK header
-compression table can be quite valuable.  Note that some QUIC implementations
-use part of the connection ID to identify the server that is handling the
-connection, enabling routing to that server and avoiding this sort of problem.
+accumulated state can be lost.  Aside from progress on incomplete requests, the
+state of the HPACK header compression table could be quite valuable.  Existing
+QUIC implementations use the connection ID to route packets to the server that
+is handling the connection, which avoids this sort of problem.
 
 A lightweight state resurrection extension might be used to avoid having to
 recreate any expensive state.
-
-Editor's Note:
-
-: It's not clear how mobility and public reset interact.  If the goal is to
-  allow public reset messages to be sent by on-path entities, then using a
-  connection ID to move a connection to a new path results in any entities on
-  the new path not seeing the start of the connection and the nonce they need to
-  generate the public reset.  A connection restart would avoid this issue.
 
 
 # Security Considerations
