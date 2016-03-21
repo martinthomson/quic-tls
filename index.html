@@ -302,7 +302,7 @@ li, p {
   <meta name="generator" content="xml2rfc version 2.5.1 - http://tools.ietf.org/tools/xml2rfc" />
   <link rel="schema.dct" href="http://purl.org/dc/terms/" />
 
-  <meta name="dct.creator" content="Thomson, M." />
+  <meta name="dct.creator" content="Thomson, M. and R. Hamilton" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-thomson-quic-tls-latest" />
   <meta name="dct.issued" scheme="ISO8601" content="2016-3-21" />
   <meta name="dct.abstract" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
@@ -325,11 +325,15 @@ li, p {
 </tr>
 <tr>
   <td class="left">Intended status: Standards Track</td>
-  <td class="right">March 21, 2016</td>
+  <td class="right">R. Hamilton</td>
 </tr>
 <tr>
   <td class="left">Expires: September 22, 2016</td>
-  <td class="right"></td>
+  <td class="right">Google</td>
+</tr>
+<tr>
+  <td class="left"></td>
+  <td class="right">March 21, 2016</td>
 </tr>
 
     	
@@ -389,7 +393,7 @@ li, p {
 <ul><li>10.1.   <a href="#rfc.references.1">Normative References</a></li>
 <li>10.2.   <a href="#rfc.references.2">Informative References</a></li>
 </ul><li>Appendix A.   <a href="#rfc.appendix.A">Acknowledgments</a></li>
-<li><a href="#rfc.authors">Author's Address</a></li>
+<li><a href="#rfc.authors">Authors' Addresses</a></li>
 
 
   </ul>
@@ -403,6 +407,8 @@ li, p {
 <dl>
   <dt>Alternative Designs:</dt>
   <dd style="margin-left: 8">There are other designs that are possible; and many of these alternative designs are likely to be equally good.  The point of this document is to articulate a coherent single design.  Notes like this throughout the document are used describe points where alternatives were considered.</dd>
+  <dt>Note:</dt>
+  <dd style="margin-left: 8">This is a rough draft.  Many details have not been ironed out.  Ryan is not responsible for any errors or omissions.</dd>
 </dl>
 <h2 id="rfc.section.1.1"><a href="#rfc.section.1.1">1.1.</a> <a href="#notational-conventions" id="notational-conventions">Notational Conventions</a></h2>
 <p id="rfc.section.1.1.p.1">The words &#8220;MUST&#8221;, &#8220;MUST NOT&#8221;, &#8220;SHOULD&#8221;, and &#8220;MAY&#8221; are used in this document.  It&#8217;s not shouting; when they are capitalized, they have the special meaning defined in <a href="#RFC2119">[RFC2119]</a>.</p>
@@ -773,7 +779,7 @@ li, p {
 <h1 id="rfc.appendix.A"><a href="#rfc.appendix.A">Appendix A.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a></h1>
 <p id="rfc.section.A.p.1">Christian Huitema&#8217;s knowledge of QUIC is far better than my own.  This would be even more inaccurate and useless if not for his assistance.  This document has variously benefited from a long series of discussions with Ryan Hamilton, Jana Iyengar, Adam Langley, Roberto Peon, Ian Swett, and likely many others who are merely forgotten by a faulty meat computer.</p>
 <h1 id="rfc.authors">
-  <a href="#rfc.authors">Author's Address</a>
+  <a href="#rfc.authors">Authors' Addresses</a>
 </h1>
 <div class="avoidbreak">
   <address class="vcard">
@@ -794,6 +800,27 @@ li, p {
 	  <span class="country-name vcardline"></span>
 	</span>
 	<span class="vcardline">EMail: <a href="mailto:martin.thomson@gmail.com">martin.thomson@gmail.com</a></span>
+
+  </address>
+</div><div class="avoidbreak">
+  <address class="vcard">
+	<span class="vcardline">
+	  <span class="fn">Ryan Hamilton</span> 
+	  <span class="n hidden">
+		<span class="family-name">Hamilton</span>
+	  </span>
+	</span>
+	<span class="org vcardline">Google</span>
+	<span class="adr">
+	  
+	  <span class="vcardline">
+		<span class="locality"></span> 
+		<span class="region"></span>
+		<span class="code"></span>
+	  </span>
+	  <span class="country-name vcardline"></span>
+	</span>
+	<span class="vcardline">EMail: <a href="mailto:rch@google.com">rch@google.com</a></span>
 
   </address>
 </div>

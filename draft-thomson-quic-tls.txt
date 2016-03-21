@@ -4,8 +4,9 @@
 
 Network Working Group                                         M. Thomson
 Internet-Draft                                                   Mozilla
-Intended status: Standards Track                          March 21, 2016
-Expires: September 22, 2016
+Intended status: Standards Track                             R. Hamilton
+Expires: September 22, 2016                                       Google
+                                                          March 21, 2016
 
 
              Porting QUIC to Transport Layer Security (TLS)
@@ -52,8 +53,7 @@ Copyright Notice
 
 
 
-
-Thomson                Expires September 22, 2016               [Page 1]
+Thomson & Hamilton     Expires September 22, 2016               [Page 1]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -88,7 +88,7 @@ Table of Contents
      10.1.  Normative References . . . . . . . . . . . . . . . . . .  18
      10.2.  Informative References . . . . . . . . . . . . . . . . .  18
    Appendix A.  Acknowledgments  . . . . . . . . . . . . . . . . . .  19
-   Author's Address  . . . . . . . . . . . . . . . . . . . . . . . .  19
+   Authors' Addresses  . . . . . . . . . . . . . . . . . . . . . . .  19
 
 1.  Introduction
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Thomson                Expires September 22, 2016               [Page 2]
+Thomson & Hamilton     Expires September 22, 2016               [Page 2]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -122,6 +122,9 @@ Internet-Draft                QUIC over TLS                   March 2016
       The point of this document is to articulate a coherent single
       design.  Notes like this throughout the document are used describe
       points where alternatives were considered.
+
+   Note:  This is a rough draft.  Many details have not been ironed out.
+      Ryan is not responsible for any errors or omissions.
 
 1.1.  Notational Conventions
 
@@ -159,16 +162,17 @@ Internet-Draft                QUIC over TLS                   March 2016
    6.  Multiplexed streams are the primary payload of QUIC.  These
        provide reliable, in-order delivery of data and are used to carry
        the encryption handshake and transport parameters (stream 1),
-       HTTP header fields (stream 3), and HTTP requests and responses.
-       Frames for managing multiplexing include those for creating and
-       destroying streams as well as flow control and priority frames.
 
 
 
-Thomson                Expires September 22, 2016               [Page 3]
+Thomson & Hamilton     Expires September 22, 2016               [Page 3]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
+
+       HTTP header fields (stream 3), and HTTP requests and responses.
+       Frames for managing multiplexing include those for creating and
+       destroying streams as well as flow control and priority frames.
 
    7.  Congestion management includes packet acknowledgment and other
        signal required to ensure effective use of available link
@@ -213,18 +217,19 @@ Internet-Draft                QUIC over TLS                   March 2016
       data after one round trip and the server immediately after
       receiving the first message from the client.
 
+
+
+
+
+Thomson & Hamilton     Expires September 22, 2016               [Page 4]
+
+Internet-Draft                QUIC over TLS                   March 2016
+
+
    o  A 0-RTT handshake in which the client uses information about the
       server to send immediately.  This data can be replayed by an
       attacker so it MUST NOT carry a self-contained trigger for any
       non-idempotent action.
-
-
-
-
-Thomson                Expires September 22, 2016               [Page 4]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
 
    A simplified TLS 1.3 handshake with 0-RTT application data is shown
    in Figure 2, see [I-D.ietf-tls-tls13] for more options.
@@ -268,19 +273,17 @@ Internet-Draft                QUIC over TLS                   March 2016
    QUIC completes its cryptographic handshake on stream 1, which means
    that the negotiation of keying material happens within the QUIC
    protocol.  QUIC over TLS does the same, relying on the ordered
-   delivery guarantees provided by QUIC to ensure that the TLS handshake
-   packets are delivered reliably and in order.
 
 
 
 
-
-
-
-Thomson                Expires September 22, 2016               [Page 5]
+Thomson & Hamilton     Expires September 22, 2016               [Page 5]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
+
+   delivery guarantees provided by QUIC to ensure that the TLS handshake
+   packets are delivered reliably and in order.
 
       +-----+---------+
       | TLS |  HTTP   |
@@ -327,17 +330,16 @@ Internet-Draft                QUIC over TLS                   March 2016
    Several changes to the structure of QUIC are necessary to make a
    layered design practical.
 
-   These changes produce the handshake shown in Figure 4.  In this
-   handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.
 
 
 
-
-Thomson                Expires September 22, 2016               [Page 6]
+Thomson & Hamilton     Expires September 22, 2016               [Page 6]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
 
+   These changes produce the handshake shown in Figure 4.  In this
+   handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.
    QUIC is responsible for ensuring that the handshake packets are re-
    sent in case of loss and that they can be ordered correctly.
 
@@ -384,15 +386,16 @@ Internet-Draft                QUIC over TLS                   March 2016
    version information is copied into the TLS handshake, which provides
    integrity protection for the QUIC negotiation.  This doesn't prevent
    version downgrade during the handshake, though it does prevent a
-   connection from completing with a downgraded version, see
-   Section 6.1.
 
 
 
-Thomson                Expires September 22, 2016               [Page 7]
+Thomson & Hamilton     Expires September 22, 2016               [Page 7]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
+
+   connection from completing with a downgraded version, see
+   Section 6.1.
 
    ISSUE:  The QUIC version negotiation has poor performance in the
       event that a client is forced to downgrade from their preferred
@@ -439,17 +442,16 @@ Internet-Draft                QUIC over TLS                   March 2016
    additional packets under the old key (causing new packets to be
    discarded).
 
-   QUIC does not rely on there being a continuous sequence of
-   application data packets; QUIC uses authenticated repair mechansims
 
 
 
-
-Thomson                Expires September 22, 2016               [Page 8]
+Thomson & Hamilton     Expires September 22, 2016               [Page 8]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
 
+   QUIC does not rely on there being a continuous sequence of
+   application data packets; QUIC uses authenticated repair mechansims
    that operate above the layer of encryption.  QUIC can therefore
    operate without restarting sequence numbers.
 
@@ -499,9 +501,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-
-
-Thomson                Expires September 22, 2016               [Page 9]
+Thomson & Hamilton     Expires September 22, 2016               [Page 9]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -557,7 +557,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 10]
+Thomson & Hamilton     Expires September 22, 2016              [Page 10]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -613,7 +613,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 11]
+Thomson & Hamilton     Expires September 22, 2016              [Page 11]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -669,7 +669,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 12]
+Thomson & Hamilton     Expires September 22, 2016              [Page 12]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -725,7 +725,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 13]
+Thomson & Hamilton     Expires September 22, 2016              [Page 13]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -781,7 +781,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 14]
+Thomson & Hamilton     Expires September 22, 2016              [Page 14]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -837,7 +837,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 15]
+Thomson & Hamilton     Expires September 22, 2016              [Page 15]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -893,7 +893,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 16]
+Thomson & Hamilton     Expires September 22, 2016              [Page 16]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -949,7 +949,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 17]
+Thomson & Hamilton     Expires September 22, 2016              [Page 17]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -1005,7 +1005,7 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson                Expires September 22, 2016              [Page 18]
+Thomson & Hamilton     Expires September 22, 2016              [Page 18]
 
 Internet-Draft                QUIC over TLS                   March 2016
 
@@ -1033,7 +1033,7 @@ Appendix A.  Acknowledgments
    Roberto Peon, Ian Swett, and likely many others who are merely
    forgotten by a faulty meat computer.
 
-Author's Address
+Authors' Addresses
 
    Martin Thomson
    Mozilla
@@ -1041,6 +1041,10 @@ Author's Address
    Email: martin.thomson@gmail.com
 
 
+   Ryan Hamilton
+   Google
+
+   Email: rch@google.com
 
 
 
@@ -1057,8 +1061,4 @@ Author's Address
 
 
 
-
-
-
-
-Thomson                Expires September 22, 2016              [Page 19]
+Thomson & Hamilton     Expires September 22, 2016              [Page 19]
