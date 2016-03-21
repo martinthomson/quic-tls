@@ -648,14 +648,15 @@ prevent the connection from being stalled.
 Note:
 
 : This is only potentially problematic for servers, who might need to send large
-  certificate chains.  This is unlikely given that QUIC - like HTTP [RFC7230] -
-  is a protocol where the server is unable to exercise the opportunity TLS
-  presents to send first.
+  certificate chains.  In other cases, this is unlikely given that QUIC - like
+  HTTP [RFC7230] - is a protocol where the server is unable to exercise the
+  opportunity TLS presents to send first.
 
-: If later modifications or extensions to QUIC permit the server to send first,
-  a client might reduce the chance of stalling due to flow control in this first
-  round trip by setting larger values for the initial stream and connection flow
-  control windows using the `quic_parameters` extension ({{quic_parameters}}).
+: If a server has a large certificate chain, or later modifications or
+  extensions to QUIC permit the server to send first, a client might reduce the
+  chance of stalling due to flow control in this first round trip by setting
+  larger values for the initial stream and connection flow control windows using
+  the `quic_parameters` extension ({{quic_parameters}}).
 
 Editor's Note:
 
