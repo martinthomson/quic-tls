@@ -15,6 +15,11 @@ author:
     name: Martin Thomson
     org: Mozilla
     email: martin.thomson@gmail.com
+ -
+    ins: R. Hamilton
+    name: Ryan Hamilton
+    org: Google
+    email: rch@google.com
 
 
 normative:
@@ -62,6 +67,11 @@ Alternative Designs:
   designs are likely to be equally good.  The point of this document is to
   articulate a coherent single design.  Notes like this throughout the document
   are used describe points where alternatives were considered.
+
+Note:
+
+: This is a rough draft.  Many details have not been ironed out.  Ryan is not
+  responsible for any errors or omissions.
 
 
 ## Notational Conventions
