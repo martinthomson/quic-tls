@@ -653,7 +653,7 @@ The position of the flow control window MUST be reset to defaults once the TLS
 handshake is complete.  This might result in the window position for either the
 connection or stream 1 being smaller than the number of octets that have been
 sent on those streams.  A `WINDOW_UPDATE` frame might therefore be necessary to
-prevent the connection from being stalled.
+prevent stream 1 from being stalled.
 
 Note:
 
@@ -705,17 +705,9 @@ Any timestamps present in `ACK` frames MUST be ignored rather than causing a
 fatal error.  Timestamps on protected frames MAY be saved and used once the TLS
 handshake completes successfully.
 
-An endpoint MUST save the last protected `WINDOW_UPDATE` frame it receives for
-each stream and apply the values once the TLS handshake completes.
-
-Editor's Note:
-
-: Ugh.  This last one is pretty ugly.  Maybe we should just make the TLS
-  handshake exempt from flow control up to the Finished message.  Then we can
-  prohibit unauthenticated `WINDOW_UPDATE` messages.  We would still likely want
-  to account for the packets sent and received, since to do otherwise would
-  create some hairy special cases.  That means that stalling is possible, but it
-  means that we can avoid ugly rules like the above.
+An endpoint MAY save the last protected `WINDOW_UPDATE` frame it receives for
+each stream and apply the values once the TLS handshake completes.  Failing
+to do this might result in temporary stalling of affected streams.
 
 
 # Connection ID
