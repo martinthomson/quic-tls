@@ -5,8 +5,8 @@
 Network Working Group                                         M. Thomson
 Internet-Draft                                                   Mozilla
 Intended status: Standards Track                             R. Hamilton
-Expires: September 22, 2016                                       Google
-                                                          March 21, 2016
+Expires: October 29, 2016                                         Google
+                                                          April 27, 2016
 
 
              Porting QUIC to Transport Layer Security (TLS)
@@ -33,7 +33,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on September 22, 2016.
+   This Internet-Draft will expire on October 29, 2016.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 1]
+Thomson & Hamilton      Expires October 29, 2016                [Page 1]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
 Table of Contents
@@ -82,7 +82,7 @@ Table of Contents
        6.2.4.  FEC Packets . . . . . . . . . . . . . . . . . . . . .  16
      6.3.  Protected Frames Prior to Handshake Completion  . . . . .  16
    7.  Connection ID . . . . . . . . . . . . . . . . . . . . . . . .  17
-   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  18
+   8.  Security Considerations . . . . . . . . . . . . . . . . . . .  17
    9.  IANA Considerations . . . . . . . . . . . . . . . . . . . . .  18
    10. References  . . . . . . . . . . . . . . . . . . . . . . . . .  18
      10.1.  Normative References . . . . . . . . . . . . . . . . . .  18
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 2]
+Thomson & Hamilton      Expires October 29, 2016                [Page 2]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    though few of the benefits QUIC provides would be realized due to the
@@ -165,9 +165,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 3]
+Thomson & Hamilton      Expires October 29, 2016                [Page 3]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
        HTTP header fields (stream 3), and HTTP requests and responses.
@@ -221,9 +221,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 4]
+Thomson & Hamilton      Expires October 29, 2016                [Page 4]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    o  A 0-RTT handshake in which the client uses information about the
@@ -277,9 +277,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 5]
+Thomson & Hamilton      Expires October 29, 2016                [Page 5]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    delivery guarantees provided by QUIC to ensure that the TLS handshake
@@ -333,9 +333,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 6]
+Thomson & Hamilton      Expires October 29, 2016                [Page 6]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    These changes produce the handshake shown in Figure 4.  In this
@@ -389,9 +389,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 7]
+Thomson & Hamilton      Expires October 29, 2016                [Page 7]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    connection from completing with a downgraded version, see
@@ -445,9 +445,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 8]
+Thomson & Hamilton      Expires October 29, 2016                [Page 8]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    QUIC does not rely on there being a continuous sequence of
@@ -501,9 +501,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016               [Page 9]
+Thomson & Hamilton      Expires October 29, 2016                [Page 9]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
 5.3.  Sequence Number Reconstruction
@@ -557,9 +557,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 10]
+Thomson & Hamilton      Expires October 29, 2016               [Page 10]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
 6.  Pre-handshake QUIC Messages
@@ -613,9 +613,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 11]
+Thomson & Hamilton      Expires October 29, 2016               [Page 11]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    whether it wants to continue the connection, request source address
@@ -669,9 +669,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 12]
+Thomson & Hamilton      Expires October 29, 2016               [Page 12]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
       enum {
@@ -725,9 +725,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 13]
+Thomson & Hamilton      Expires October 29, 2016               [Page 13]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    supported_quic_versions:  This is a list of supported QUIC versions
@@ -781,9 +781,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 14]
+Thomson & Hamilton      Expires October 29, 2016               [Page 14]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
 6.2.  Unprotected Frames Prior to Handshake Completion
@@ -837,17 +837,17 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 15]
+Thomson & Hamilton      Expires October 29, 2016               [Page 15]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    The position of the flow control window MUST be reset to defaults
    once the TLS handshake is complete.  This might result in the window
    position for either the connection or stream 1 being smaller than the
    number of octets that have been sent on those streams.  A
-   "WINDOW_UPDATE" frame might therefore be necessary to prevent the
-   connection from being stalled.
+   "WINDOW_UPDATE" frame might therefore be necessary to prevent stream
+   1 from being stalled.
 
    Note:  This is only potentially problematic for servers, who might
       need to send large certificate chains.  In other cases, this is
@@ -893,9 +893,9 @@ Internet-Draft                QUIC over TLS                   March 2016
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 16]
+Thomson & Hamilton      Expires October 29, 2016               [Page 16]
 
-Internet-Draft                QUIC over TLS                   March 2016
+Internet-Draft                QUIC over TLS                   April 2016
 
 
    protected messages need to be decrypted to determine if they are TLS
@@ -906,18 +906,10 @@ Internet-Draft                QUIC over TLS                   March 2016
    causing a fatal error.  Timestamps on protected frames MAY be saved
    and used once the TLS handshake completes successfully.
 
-   An endpoint MUST save the last protected "WINDOW_UPDATE" frame it
+   An endpoint MAY save the last protected "WINDOW_UPDATE" frame it
    receives for each stream and apply the values once the TLS handshake
-   completes.
-
-   Editor's Note:  Ugh.  This last one is pretty ugly.  Maybe we should
-      just make the TLS handshake exempt from flow control up to the
-      Finished message.  Then we can prohibit unauthenticated
-      "WINDOW_UPDATE" messages.  We would still likely want to account
-      for the packets sent and received, since to do otherwise would
-      create some hairy special cases.  That means that stalling is
-      possible, but it means that we can avoid ugly rules like the
-      above.
+   completes.  Failing to do this might result in temporary stalling of
+   affected streams.
 
 7.  Connection ID
 
@@ -946,14 +938,6 @@ Internet-Draft                QUIC over TLS                   March 2016
    connection ID to route packets to the server that is handling the
    connection, which avoids this sort of problem.
 
-
-
-
-Thomson & Hamilton     Expires September 22, 2016              [Page 17]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    A lightweight state resurrection extension might be used to avoid
    having to recreate any expensive state.
 
@@ -962,6 +946,13 @@ Internet-Draft                QUIC over TLS                   March 2016
    There are likely to be some real clangers here eventually, but the
    current set of issues is well captured in the relevant sections of
    the main text.
+
+
+
+Thomson & Hamilton      Expires October 29, 2016               [Page 17]
+
+Internet-Draft                QUIC over TLS                   April 2016
+
 
    Never assume that because it isn't in the security considerations
    section it doesn't affect security.  Most of this document does.
@@ -976,8 +967,8 @@ Internet-Draft                QUIC over TLS                   March 2016
 
    [I-D.ietf-tls-tls13]
               Rescorla, E., "The Transport Layer Security (TLS) Protocol
-              Version 1.3", draft-ietf-tls-tls13-11 (work in progress),
-              December 2015.
+              Version 1.3", draft-ietf-tls-tls13-12 (work in progress),
+              March 2016.
 
    [I-D.tsvwg-quic-protocol]
               Hamilton, R., Iyengar, J., Swett, I., and A. Wilk, "QUIC:
@@ -1001,15 +992,6 @@ Internet-Draft                QUIC over TLS                   March 2016
               RFC 793, DOI 10.17487/RFC0793, September 1981,
               <http://www.rfc-editor.org/info/rfc793>.
 
-
-
-
-
-Thomson & Hamilton     Expires September 22, 2016              [Page 18]
-
-Internet-Draft                QUIC over TLS                   March 2016
-
-
    [RFC7230]  Fielding, R., Ed. and J. Reschke, Ed., "Hypertext Transfer
               Protocol (HTTP/1.1): Message Syntax and Routing",
               RFC 7230, DOI 10.17487/RFC7230, June 2014,
@@ -1018,6 +1000,15 @@ Internet-Draft                QUIC over TLS                   March 2016
    [RFC7258]  Farrell, S. and H. Tschofenig, "Pervasive Monitoring Is an
               Attack", BCP 188, RFC 7258, DOI 10.17487/RFC7258, May
               2014, <http://www.rfc-editor.org/info/rfc7258>.
+
+
+
+
+
+Thomson & Hamilton      Expires October 29, 2016               [Page 18]
+
+Internet-Draft                QUIC over TLS                   April 2016
+
 
    [RFC7540]  Belshe, M., Peon, R., and M. Thomson, Ed., "Hypertext
               Transfer Protocol Version 2 (HTTP/2)", RFC 7540,
@@ -1061,4 +1052,13 @@ Authors' Addresses
 
 
 
-Thomson & Hamilton     Expires September 22, 2016              [Page 19]
+
+
+
+
+
+
+
+
+
+Thomson & Hamilton      Expires October 29, 2016               [Page 19]

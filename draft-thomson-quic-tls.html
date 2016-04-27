@@ -304,7 +304,7 @@ li, p {
 
   <meta name="dct.creator" content="Thomson, M. and R. Hamilton" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-thomson-quic-tls-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-3-21" />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-4-27" />
   <meta name="dct.abstract" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
   <meta name="description" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
 
@@ -328,12 +328,12 @@ li, p {
   <td class="right">R. Hamilton</td>
 </tr>
 <tr>
-  <td class="left">Expires: September 22, 2016</td>
+  <td class="left">Expires: October 29, 2016</td>
   <td class="right">Google</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">March 21, 2016</td>
+  <td class="right">April 27, 2016</td>
 </tr>
 
     	
@@ -353,7 +353,7 @@ li, p {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on September 22, 2016.</p>
+<p>This Internet-Draft will expire on October 29, 2016.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -681,7 +681,7 @@ li, p {
 <p id="rfc.section.6.2.3.p.1">Sending a <samp>WINDOW_UPDATE</samp> on stream 1 might be necessary to permit the completion of the TLS handshake, particularly in cases where the certification path is lengthy.  To avoid stalling due to flow control exhaustion, <samp>WINDOW_UPDATE</samp> frames with stream 1 are permitted.</p>
 <p id="rfc.section.6.2.3.p.2">Receiving a <samp>WINDOW_UPDATE</samp> frame on streams other than 1 MUST be treated as a fatal error.</p>
 <p id="rfc.section.6.2.3.p.3">Stream 1 is exempt from the connection-level flow control window.</p>
-<p id="rfc.section.6.2.3.p.4">The position of the flow control window MUST be reset to defaults once the TLS handshake is complete.  This might result in the window position for either the connection or stream 1 being smaller than the number of octets that have been sent on those streams.  A <samp>WINDOW_UPDATE</samp> frame might therefore be necessary to prevent the connection from being stalled.</p>
+<p id="rfc.section.6.2.3.p.4">The position of the flow control window MUST be reset to defaults once the TLS handshake is complete.  This might result in the window position for either the connection or stream 1 being smaller than the number of octets that have been sent on those streams.  A <samp>WINDOW_UPDATE</samp> frame might therefore be necessary to prevent stream 1 from being stalled.</p>
 <p/>
 
 <dl>
@@ -699,13 +699,7 @@ li, p {
 <p id="rfc.section.6.3.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
 <p id="rfc.section.6.3.p.3">TLS handshake messages are covered by record protection during the handshake, once key agreement has completed.  This means that protected messages need to be decrypted to determine if they are TLS handshake messages or not.  Similarly, <samp>ACK</samp> and <samp>WINDOW_UPDATE</samp> frames might be needed to successfully complete the TLS handshake.</p>
 <p id="rfc.section.6.3.p.4">Any timestamps present in <samp>ACK</samp> frames MUST be ignored rather than causing a fatal error.  Timestamps on protected frames MAY be saved and used once the TLS handshake completes successfully.</p>
-<p id="rfc.section.6.3.p.5">An endpoint MUST save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.</p>
-<p/>
-
-<dl>
-  <dt>Editor&#8217;s Note:</dt>
-  <dd style="margin-left: 8">Ugh.  This last one is pretty ugly.  Maybe we should just make the TLS handshake exempt from flow control up to the Finished message.  Then we can prohibit unauthenticated <samp>WINDOW_UPDATE</samp> messages.  We would still likely want to account for the packets sent and received, since to do otherwise would create some hairy special cases.  That means that stalling is possible, but it means that we can avoid ugly rules like the above.</dd>
-</dl>
+<p id="rfc.section.6.3.p.5">An endpoint MAY save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.  Failing to do this might result in temporary stalling of affected streams.</p>
 <h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#connection-id" id="connection-id">Connection ID</a></h1>
 <p id="rfc.section.7.p.1">The QUIC connection identifier serves to identify a connection and to allow a server to resume an existing connection from a new client address in case of mobility events.  However, this creates an identifier that a passive observer <a href="#RFC7258">[RFC7258]</a> can use to correlate connections.</p>
 <p id="rfc.section.7.p.2">TLS 1.3 offers connection resumption using pre-shared keys, which also allows a client to send 0-RTT application data.  This mode could be used to continue a connection rather than rely on a publicly visible correlator.  This only requires that servers produce a new ticket on every connection and that clients do not resume from the same ticket more than once.</p>
@@ -725,7 +719,7 @@ li, p {
       <td class="reference">
         <b id="I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</b>
       </td>
-      <td class="top"><a>Rescorla, E.</a>, "<a href="http://tools.ietf.org/html/draft-ietf-tls-tls13-11">The Transport Layer Security (TLS) Protocol Version 1.3</a>", Internet-Draft draft-ietf-tls-tls13-11, December 2015.</td>
+      <td class="top"><a>Rescorla, E.</a>, "<a href="http://tools.ietf.org/html/draft-ietf-tls-tls13-12">The Transport Layer Security (TLS) Protocol Version 1.3</a>", Internet-Draft draft-ietf-tls-tls13-12, March 2016.</td>
     </tr>
     <tr>
       <td class="reference">
