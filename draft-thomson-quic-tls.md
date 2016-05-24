@@ -347,12 +347,12 @@ from which they are derived:
 | 0-RTT | early_traffic_secret | "QUIC 0-RTT key expansion" |
 | 1-RTT | traffic_secret_N | "QUIC 1-RTT key expansion" |
 
-0-RTT keys are those keys that are used in resumed connections prior to the TLS
-handshake completes.  Data sent using 0-RTT keys might be replayed and so has
-some restructions on its use, see {{using-early-data}}.  0-RTT keys are used
-after sending or receiving a ClientHello.
+0-RTT keys are those keys that are used in resumed connections prior to the
+completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed
+and so has some restructions on its use, see {{using-early-data}}.  0-RTT keys
+are used after sending or receiving a ClientHello.
 
-1-RTT keys are used after the handshake completes.  There are potentially
+1-RTT keys are used after the TLS handshake completes.  There are potentially
 multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS
 KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate
 message.
