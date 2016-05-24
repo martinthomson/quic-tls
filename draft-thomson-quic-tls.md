@@ -337,6 +337,24 @@ matching KeyUpdate message.  This ensures that a peer cannot initiate two
 consecutive updates, which could be undetectable based on the KEY_PHASE bit.
 
 
+## Retransmission of TLS Handshake Messages
+
+TLS handshake messages need to be retransmitted with the same level of
+cryptographic protection that was originally used to protect them.  A client
+would be unable to decrypt retransmissions of a server's handshake messages that
+are protected using the application data keys, since the calculation of the
+application data keys depend on the contents of the handshake messages.
+
+This restriction means the creation of an exception to the requirement to always
+use new keys for sending once they are available.  A server MUST mark the
+retransmitted handshake messages with the same KEY_PHASE as the original
+messages.
+
+This prevents a server from sending KeyUpdate messages until it has received the
+client's Finished message.  Otherwise, packets protected by the updated keys
+could be confused for retransmissions of handshake messages.
+
+
 ## QUIC Key Expansion {#key-expansion}
 
 The following table shows QUIC keys, when they are generated and the TLS secret
@@ -381,8 +399,8 @@ TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.
 Regular QUIC packets are protected by an AEAD [RFC5116].  Version negotiation
 and public reset packets are not protected.
 
-Once TLS has provided a key, the contents of regular QUIC packets, starting
-immediately after the packet number are protected by the AEAD selected by TLS.
+Once TLS has provided a key, the contents of regular QUIC packets immediately
+after any TLS messages have been sent are protected by the AEAD selected by TLS.
 
 The key, K, for the AEAD is either the Client Write Key or the Server Write Key,
 derived as defined in {{key-expansion}}.
@@ -544,43 +562,46 @@ FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints
 MUST treat receipt of an unprotected FEC packet as a fatal error.
 
 
-### Denial of Service with Unprotected Packets
+## Denial of Service with Unprotected Packets ##
 
 Accepting unprotected - specifically unauthenticated - packets presents a denial
 of service risk to endpoints.  An attacker that is able to inject unprotected
 packets can cause a recipient to drop even protected packets with a matching
-sequence number.  Given the restrictions on unprotected packets, the following
-options are available:
+sequence number.  The spurious packet shadows the genuine packet, causing the
+genuine packet to be ignored as redundant.
 
-* `ACK` packets can be spoofed and might be processed by a recipient.  ACK
-  packets will cause the recipient of the `ACK` to - perhaps falsely - believe
-  that their messages have been received when they have not.
+Once the TLS handshake is complete, both peers MUST ignore unprotected packets.
+The handshake is complete when the server receives a client's Finished message
+and when a client receives an acknowledgement that their Finished message was
+received.  From that point onward, unprotected messages can be safely dropped.
+Note that the client could retransmit its Finished message to the server, so the
+server cannot reject such a message.
 
-* Spoofed `ACK` packets that have no effect on the state of a recipient still
-  consume a sequence number, one that might be used by legitimate packets.  This
-  causes the recipient to drop the legitimate packet, which might result in a
-  request for a retransmission.
+Since only TLS handshake packets and acknowledgments are sent in the clear, an
+attacker is able to force implementations to rely on retransmission for packets
+that are lost or shadowed.  Thus, an attacker that intends to deny service to an
+endpoint has to drop or shadow protected packets in order to ensure that their
+victim continues to accept unprotected packets.  The ability to shadow packets
+means that an attacker does not need to be on path.
 
-* Spoofed `STREAM` packets need to be on stream 1 for an endpoint to accept
-  them.  These either contain new data or they contain a retransmission of data
-  that has already been received (is this permitted without an `ACK`?).  An
-  implementation might accept empty TLS records without altering the TLS state
-  machine.
+ISSUE:
 
-  To that end, a TLS implementation MUST reject empty TLS handshake records and
-  any record that is not permitted by the TLS state machine.  Any TLS
-  application data or alerts - other than a single end_of_early_data at the
-  appropriate time - that is received prior to the end of the handshake MUST be
-  treated as a fatal error.
+: This would not be an issue if QUIC had a randomized starting sequence number.
+  If we choose to randomize, we fix this problem and reduce the denial of
+  service exposure to on-path attackers.  The only possible problem is in
+  authenticating the initial value, so that peers can be sure that they haven't
+  missed an initial message.
 
-Once an encrypted packet has been accepted, unprotected packets MUST be dropped
-if they have a higher sequence number than the encrypted packet.
+In addition to denying endpoints messages, an attacker to generate packets that
+cause no state change in a recipient.  See {{useless}} for a discussion of these
+risks.
 
-As a result, an attacker that intends to deny service to an endpoint has to drop
-protected packets in order to ensure that their victim continues to accept
-unprotected packets.  This means that an attacker has to be on-path for this to
-be effective, at which point they are better served by dropping the packets that
-they don't wish the recipient to receive.
+To avoid receiving TLS packets that contain no useful data, a TLS implementation
+MUST reject empty TLS handshake records and any record that is not permitted by
+the TLS state machine.  Any TLS application data or alerts - other than a single
+end_of_early_data at the appropriate time - that is received prior to the end of
+the handshake MUST be treated as a fatal error.
+
 
 
 ## Use of 0-RTT Keys {#using-early-data}
@@ -704,6 +725,15 @@ extension of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not
 include the ability to include a cookie in HelloRetryRequest.)
 
 
+# Security Considerations
+
+There are likely to be some real clangers here eventually, but the current set
+of issues is well captured in the relevant sections of the main text.
+
+Never assume that because it isn't in the security considerations section it
+doesn't affect security.  Most of this document does.
+
+
 ## Packet Reflection Attack Mitigation
 
 A small ClientHello that results in a large block of handshake messages from a
@@ -720,13 +750,18 @@ server SHOULD use a HelloRetryRequest if the size of the handshake messages it
 sends is likely to exceed the size of the ClientHello.
 
 
-# Security Considerations
+## Peer Denial of Service {#useless}
 
-There are likely to be some real clangers here eventually, but the current set
-of issues is well captured in the relevant sections of the main text.
+QUIC, TLS and HTTP/2 all contain a messages that have legitimate uses in some
+contexts, but that can be abused to cause a peer to expend processing resources
+without having any observable impact on the state of the connection.  If
+processing is disproportionately large in comparison to the observable effects
+on bandwidth or state, then this allows a peer to exhaust processing capacity
+without consequence.
 
-Never assume that because it isn't in the security considerations section it
-doesn't affect security.  Most of this document does.
+While there are legitimate uses for some redundant packets, implementations
+SHOULD track redundant packets and treat excessive volumes of them as indicative
+of an attack.
 
 
 # IANA Considerations
