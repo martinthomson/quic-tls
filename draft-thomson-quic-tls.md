@@ -77,43 +77,40 @@ QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
 
 1. The basic frame envelope describes the common packet layout.  This layer
    includes connection identification, version negotiation, and includes the
-   indicators that allow the framing, public reset, and FEC modules to be
+   indicators that allow the framing, and public reset packets to be
    identified.
 
-2. The public reset is an unprotected frame that allows an intermediary (an
+2. The public reset is an unprotected packet that allows an intermediary (an
    entity that is not part of the security context) to request the termination
    of a QUIC connection.
 
 3. Version negotiation frames are used to agree on a common version of QUIC to
    use.
 
-4. The forward error correction (FEC) module provides redundant entropy that
-   allows for frames to be repaired in event of loss.
-
-5. Framing comprises most of the QUIC protocol.  Framing provides a number of
+4. Framing comprises most of the QUIC protocol.  Framing provides a number of
    different types of frame, each with a specific purpose.  Framing supports
    frames for both congestion management and stream multiplexing.  Framing
    additionally provides a liveness testing capability (the PING frame).
 
-6. Encryption provides confidentiality and integrity protection for frames.  All
+5. Encryption provides confidentiality and integrity protection for frames.  All
    frames are protected based on keying material derived from the TLS connection
    running on stream 1.  Prior to this, data is protected with the 0-RTT keys.
 
-7. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
+6. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
    in-order delivery of data and are used to carry the encryption handshake and
    transport parameters (stream 1), HTTP header fields (stream 3), and HTTP
    requests and responses.  Frames for managing multiplexing include those for
    creating and destroying streams as well as flow control and priority frames.
 
-8. Congestion management includes packet acknowledgment and other signal
+7. Congestion management includes packet acknowledgment and other signal
    required to ensure effective use of available link capacity.
 
-9. A complete TLS connection is run on stream 1.  This includes the entire TLS
+8. A complete TLS connection is run on stream 1.  This includes the entire TLS
    record layer.  As the TLS connection reaches certain states, keying material
    is provided to the QUIC encryption layer for protecting the remainder of the
    QUIC traffic.
 
-10. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
+9. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
 
 The relative relationship of these components are pictorally represented in
 {{quic-structure}}.
