@@ -579,8 +579,8 @@ li, p {
     </tr>
   </tbody>
 </table>
-<p id="rfc.section.4.2.p.2">0-RTT keys are those keys that are used in resumed connections prior to the TLS handshake completes.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
-<p id="rfc.section.4.2.p.3">1-RTT keys are used after the handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
+<p id="rfc.section.4.2.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
+<p id="rfc.section.4.2.p.3">1-RTT keys are used after the TLS handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
 <p id="rfc.section.4.2.p.4">The complete key expansion uses the same process for key expansion as defined in Section 7.3 of <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  For example, the Client Write Key for the data sent immediately after sending the TLS Finished message is:</p>
 <pre>
    label = "QUIC 1-RTT key expansion, client write key"
