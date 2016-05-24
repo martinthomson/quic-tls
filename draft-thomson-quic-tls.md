@@ -479,9 +479,14 @@ several types of frame for managing loss detection and recovery.  In addition,
 it might be useful to use the data acquired during the exchange of
 unauthenticated messages for congestion management.
 
+This section generally only applies to TLS handshake messages from both peers
+and acknowledgments of the packets carrying those messages.  In many cases, the
+need for servers to provide acknowledgments is minimal, since the messages that
+clients send are small and implicitly acknowledged by the server's responses.
+
 The actions that a peer takes as a result of receiving an unauthenticated packet
-needs tobe limited.  In particular, state established by these packets cannot be
-retained once record protection commences.
+needs to be limited.  In particular, state established by these packets cannot
+be retained once record protection commences.
 
 There are several approaches possible for dealing with unauthenticated packets
 prior to handshake completion:
@@ -520,8 +525,8 @@ fatal error.
 `STREAM` frames for stream 1 are permitted.  These carry the TLS handshake
 messages.
 
-Receiving unprotected `STREAM` frames or unprotected `STREAM` frames for other
-streams MUST be treated as a fatal error.
+Receiving unprotected `STREAM` frames for other streams MUST be treated as a
+fatal error.
 
 Issue:
 
@@ -568,7 +573,7 @@ FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints
 MUST treat receipt of an unprotected FEC packet as a fatal error.
 
 
-## Denial of Service with Unprotected Packets ##
+### Denial of Service with Unprotected Packets ##
 
 Accepting unprotected - specifically unauthenticated - packets presents a denial
 of service risk to endpoints.  An attacker that is able to inject unprotected
