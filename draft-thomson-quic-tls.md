@@ -208,7 +208,7 @@ However, these frames are not authenticated or confidentiality protected.
 on QUIC operation during this phase.
 
 Once complete, QUIC frames and forward error control (FEC) messages are
-encapsulated in using TLS record protection.
+protected using QUIC record protection, see {{record-protection}}.
 
 
 ## Handshake and Setup Sequence
@@ -265,7 +265,7 @@ In {{quic-tls-handshake}}, symbols mean:
 * "[" and "]" enclose messages that are protected by the QUIC 1-RTT keys.
 
 
-# QUIC Record Protection
+# QUIC Record Protection {#record-protection}
 
 QUIC provides a record protection layer that is responsible for authenticated
 encryption of packets.  The record protection layer uses keys provided by the
