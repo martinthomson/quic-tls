@@ -286,9 +286,9 @@ li, p {
 <link href="#rfc.section.5.1.2" rel="Chapter" title="5.1.2 ACK Frames"/>
 <link href="#rfc.section.5.1.3" rel="Chapter" title="5.1.3 WINDOW_UPDATE Frames"/>
 <link href="#rfc.section.5.1.4" rel="Chapter" title="5.1.4 FEC Packets"/>
-<link href="#rfc.section.5.2" rel="Chapter" title="5.2 Denial of Service with Unprotected Packets"/>
-<link href="#rfc.section.5.3" rel="Chapter" title="5.3 Use of 0-RTT Keys"/>
-<link href="#rfc.section.5.4" rel="Chapter" title="5.4 Protected Frames Prior to Handshake Completion"/>
+<link href="#rfc.section.5.1.5" rel="Chapter" title="5.1.5 Denial of Service with Unprotected Packets"/>
+<link href="#rfc.section.5.2" rel="Chapter" title="5.2 Use of 0-RTT Keys"/>
+<link href="#rfc.section.5.3" rel="Chapter" title="5.3 Protected Frames Prior to Handshake Completion"/>
 <link href="#rfc.section.6" rel="Chapter" title="6 QUIC-Specific Additions to the TLS Handshake"/>
 <link href="#rfc.section.6.1" rel="Chapter" title="6.1 Protocol and Version Negotiation"/>
 <link href="#rfc.section.6.2" rel="Chapter" title="6.2 QUIC Extension"/>
@@ -388,9 +388,9 @@ li, p {
 <li>5.1.2.   <a href="#rfc.section.5.1.2">ACK Frames</a></li>
 <li>5.1.3.   <a href="#rfc.section.5.1.3">WINDOW_UPDATE Frames</a></li>
 <li>5.1.4.   <a href="#rfc.section.5.1.4">FEC Packets</a></li>
-</ul><li>5.2.   <a href="#rfc.section.5.2">Denial of Service with Unprotected Packets</a></li>
-<li>5.3.   <a href="#rfc.section.5.3">Use of 0-RTT Keys</a></li>
-<li>5.4.   <a href="#rfc.section.5.4">Protected Frames Prior to Handshake Completion</a></li>
+<li>5.1.5.   <a href="#rfc.section.5.1.5">Denial of Service with Unprotected Packets</a></li>
+</ul><li>5.2.   <a href="#rfc.section.5.2">Use of 0-RTT Keys</a></li>
+<li>5.3.   <a href="#rfc.section.5.3">Protected Frames Prior to Handshake Completion</a></li>
 </ul><li>6.   <a href="#rfc.section.6">QUIC-Specific Additions to the TLS Handshake</a></li>
 <ul><li>6.1.   <a href="#rfc.section.6.1">Protocol and Version Negotiation</a></li>
 <li>6.2.   <a href="#rfc.section.6.2">QUIC Extension</a></li>
@@ -541,7 +541,7 @@ li, p {
   <li>&#8221;[&#8221; and &#8220;]&#8221; enclose messages that are protected by the QUIC 1-RTT keys.</li>
 </ul>
 <h1 id="rfc.section.4"><a href="#rfc.section.4">4.</a> <a href="#record-protection" id="record-protection">QUIC Record Protection</a></h1>
-<p id="rfc.section.4.p.1">QUIC provides a record protection layer that is responsible for authenticated encryption of packets.  The record protection layer uses keys provided by the TLS connection and authenticated encryption to</p>
+<p id="rfc.section.4.p.1">QUIC provides a record protection layer that is responsible for authenticated encryption of packets.  The record protection layer uses keys provided by the TLS connection and authenticated encryption to provide confidentiality and integrity protection for the content of packets.</p>
 <p id="rfc.section.4.p.2">Different keys are used for QUIC and TLS record protection.  Having separate QUIC and TLS record protection means that TLS records can be protected by two different keys.  This redundancy is maintained for the sake of simplicity.</p>
 <h2 id="rfc.section.4.1"><a href="#rfc.section.4.1">4.1.</a> <a href="#key-phases" id="key-phases">Key Phases</a></h2>
 <p id="rfc.section.4.1.p.1">The transition to use of a new QUIC key occurs immediately after sending the TLS handshake messages that produced the key transition.  Every time that a new set of keys is used for protecting outbound messages, the KEY_PHASE bit in the public flags is toggled.  The KEY_PHASE bit on unencrypted messages is 0.</p>
@@ -560,7 +560,7 @@ li, p {
 <p id="rfc.section.4.1.p.6">At each point, both keying material (see <a href="#key-expansion">Section 4.3</a>) and the the AEAD function used by TLS is interchanged with the values that are currently in use for protecting outbound packets.  Once a change of keys has been made, packets with higher sequence numbers MUST use the new keying material until a newer set of keys (and AEAD) are used.</p>
 <p id="rfc.section.4.1.p.7">Once a packet protected by a new key has been received, a recipient SHOULD retain the previous keys for a short period.  Retaining old keys allows the recipient to decode reordered packets around a change in keys.  Keys SHOULD be discarded when an endpoints has received all packets with sequence numbers lower than the lowest sequence number used for the new key, or when it determines that reordering of those packets is unlikely.</p>
 <p id="rfc.section.4.1.p.8">The KEY_PHASE bit does not indicate which keys are in use.  Depending on whether 0-RTT data was sent and accepted, packets protected with keys derived from the same secret might be marked with different KEY_PHASE values.</p>
-<p id="rfc.section.4.1.p.9">Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing of messages without having to receive the TLS KeyUpdate message that triggers the key update.  As required by TLS, only one key update can be in progress at a time and each peer cannot initiate a new key update until it has received a matching KeyUpdate message.  This ensures that a peer cannot initiate two consecutive updates, which could be undetectable based on the KEY_PHASE bit.</p>
+<p id="rfc.section.4.1.p.9">Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing of messages without having to receive the TLS KeyUpdate message that triggers the key update.  An endpoint MUST NOT initiate more than one key update at a time.  A new key update cannot be sent until the endpoint has received a matching KeyUpdate message from its peer; or, if the endpoint did not initiate the original key update, it has received an acknowledgment of its own KeyUpdate.  This ensures that there are at most two keys to distinguish between at any one time, for which the KEY_PHASE bit is sufficient.</p>
 <h2 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#retransmission-of-tls-handshake-messages" id="retransmission-of-tls-handshake-messages">Retransmission of TLS Handshake Messages</a></h2>
 <p id="rfc.section.4.2.p.1">TLS handshake messages need to be retransmitted with the same level of cryptographic protection that was originally used to protect them.  A client would be unable to decrypt retransmissions of a server&#8217;s handshake messages that are protected using the application data keys, since the calculation of the application data keys depend on the contents of the handshake messages.</p>
 <p id="rfc.section.4.2.p.2">This restriction means the creation of an exception to the requirement to always use new keys for sending once they are available.  A server MUST mark the retransmitted handshake messages with the same KEY_PHASE as the original messages.</p>
@@ -588,7 +588,7 @@ li, p {
     </tr>
   </tbody>
 </table>
-<p id="rfc.section.4.3.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.3</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
+<p id="rfc.section.4.3.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
 <p id="rfc.section.4.3.p.3">1-RTT keys are used after the TLS handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
 <p id="rfc.section.4.3.p.4">The complete key expansion uses the same process for key expansion as defined in Section 7.3 of <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  For example, the Client Write Key for the data sent immediately after sending the TLS Finished message is:</p>
 <pre>
@@ -625,8 +625,9 @@ li, p {
 </dl>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#pre-handshake" id="pre-handshake">Pre-handshake QUIC Messages</a></h1>
 <p id="rfc.section.5.p.1">Implementations MUST NOT exchange data on any stream other than stream 1 prior to the completion of the TLS handshake.  However, QUIC requires the use of several types of frame for managing loss detection and recovery.  In addition, it might be useful to use the data acquired during the exchange of unauthenticated messages for congestion management.</p>
-<p id="rfc.section.5.p.2">The actions that a peer takes as a result of receiving an unauthenticated packet needs tobe limited.  In particular, state established by these packets cannot be retained once record protection commences.</p>
-<p id="rfc.section.5.p.3">There are several approaches possible for dealing with unauthenticated packets prior to handshake completion:</p>
+<p id="rfc.section.5.p.2">This section generally only applies to TLS handshake messages from both peers and acknowledgments of the packets carrying those messages.  In many cases, the need for servers to provide acknowledgments is minimal, since the messages that clients send are small and implicitly acknowledged by the server&#8217;s responses.</p>
+<p id="rfc.section.5.p.3">The actions that a peer takes as a result of receiving an unauthenticated packet needs to be limited.  In particular, state established by these packets cannot be retained once record protection commences.</p>
+<p id="rfc.section.5.p.4">There are several approaches possible for dealing with unauthenticated packets prior to handshake completion:</p>
 <p/>
 
 <ul>
@@ -636,20 +637,20 @@ li, p {
   <li>save them and use them when they can be properly authenticated</li>
   <li>treat them as a fatal error</li>
 </ul>
-<p id="rfc.section.5.p.5">Different strategies are appropriate for different types of data.  This document proposes that all strategies are possible depending on the type of message.</p>
+<p id="rfc.section.5.p.6">Different strategies are appropriate for different types of data.  This document proposes that all strategies are possible depending on the type of message.</p>
 <p/>
 
 <ul>
   <li>Transport parameters and options are made usable and authenticated as part of the TLS handshake (see <a href="#quic_parameters">Section 6.2</a>).</li>
   <li>Most unprotected messages are treated as fatal errors when received except for the small number necessary to permit the handshake to complete (see <a href="#pre-handshake-unprotected">Section 5.1</a>).</li>
-  <li>Protected packets can either be discarded or saved and later used (see <a href="#pre-handshake-protected">Section 5.4</a>).</li>
+  <li>Protected packets can either be discarded or saved and later used (see <a href="#pre-handshake-protected">Section 5.3</a>).</li>
 </ul>
 <h2 id="rfc.section.5.1"><a href="#rfc.section.5.1">5.1.</a> <a href="#pre-handshake-unprotected" id="pre-handshake-unprotected">Unprotected Frames Prior to Handshake Completion</a></h2>
 <p id="rfc.section.5.1.p.1">This section describes the handling of messages that are sent and received prior to the completion of the TLS handshake.</p>
 <p id="rfc.section.5.1.p.2">Sending and receiving unprotected messages is hazardous.  Unless expressly permitted, receipt of an unprotected message of any kind MUST be treated as a fatal error.</p>
 <h3 id="rfc.section.5.1.1"><a href="#rfc.section.5.1.1">5.1.1.</a> <a href="#stream-frames" id="stream-frames">STREAM Frames</a></h3>
 <p><samp>STREAM</samp> frames for stream 1 are permitted.  These carry the TLS handshake messages.</p>
-<p id="rfc.section.5.1.1.p.2">Receiving unprotected <samp>STREAM</samp> frames or unprotected <samp>STREAM</samp> frames for other streams MUST be treated as a fatal error.</p>
+<p id="rfc.section.5.1.1.p.2">Receiving unprotected <samp>STREAM</samp> frames for other streams MUST be treated as a fatal error.</p>
 <p/>
 
 <dl>
@@ -671,31 +672,31 @@ li, p {
 <p id="rfc.section.5.1.3.p.3">Stream 1 is exempt from the connection-level flow control window.</p>
 <h3 id="rfc.section.5.1.4"><a href="#rfc.section.5.1.4">5.1.4.</a> <a href="#fec-packets" id="fec-packets">FEC Packets</a></h3>
 <p id="rfc.section.5.1.4.p.1">FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints MUST treat receipt of an unprotected FEC packet as a fatal error.</p>
-<h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#denial-of-service-with-unprotected-packets" id="denial-of-service-with-unprotected-packets">Denial of Service with Unprotected Packets</a></h2>
-<p id="rfc.section.5.2.p.1">Accepting unprotected - specifically unauthenticated - packets presents a denial of service risk to endpoints.  An attacker that is able to inject unprotected packets can cause a recipient to drop even protected packets with a matching sequence number.  The spurious packet shadows the genuine packet, causing the genuine packet to be ignored as redundant.</p>
-<p id="rfc.section.5.2.p.2">Once the TLS handshake is complete, both peers MUST ignore unprotected packets.  The handshake is complete when the server receives a client&#8217;s Finished message and when a client receives an acknowledgement that their Finished message was received.  From that point onward, unprotected messages can be safely dropped.  Note that the client could retransmit its Finished message to the server, so the server cannot reject such a message.</p>
-<p id="rfc.section.5.2.p.3">Since only TLS handshake packets and acknowledgments are sent in the clear, an attacker is able to force implementations to rely on retransmission for packets that are lost or shadowed.  Thus, an attacker that intends to deny service to an endpoint has to drop or shadow protected packets in order to ensure that their victim continues to accept unprotected packets.  The ability to shadow packets means that an attacker does not need to be on path.</p>
+<h3 id="rfc.section.5.1.5"><a href="#rfc.section.5.1.5">5.1.5.</a> <a href="#denial-of-service-with-unprotected-packets" id="denial-of-service-with-unprotected-packets">Denial of Service with Unprotected Packets</a></h3>
+<p id="rfc.section.5.1.5.p.1">Accepting unprotected - specifically unauthenticated - packets presents a denial of service risk to endpoints.  An attacker that is able to inject unprotected packets can cause a recipient to drop even protected packets with a matching sequence number.  The spurious packet shadows the genuine packet, causing the genuine packet to be ignored as redundant.</p>
+<p id="rfc.section.5.1.5.p.2">Once the TLS handshake is complete, both peers MUST ignore unprotected packets.  The handshake is complete when the server receives a client&#8217;s Finished message and when a client receives an acknowledgement that their Finished message was received.  From that point onward, unprotected messages can be safely dropped.  Note that the client could retransmit its Finished message to the server, so the server cannot reject such a message.</p>
+<p id="rfc.section.5.1.5.p.3">Since only TLS handshake packets and acknowledgments are sent in the clear, an attacker is able to force implementations to rely on retransmission for packets that are lost or shadowed.  Thus, an attacker that intends to deny service to an endpoint has to drop or shadow protected packets in order to ensure that their victim continues to accept unprotected packets.  The ability to shadow packets means that an attacker does not need to be on path.</p>
 <p/>
 
 <dl>
   <dt>ISSUE:</dt>
   <dd style="margin-left: 8">This would not be an issue if QUIC had a randomized starting sequence number.  If we choose to randomize, we fix this problem and reduce the denial of service exposure to on-path attackers.  The only possible problem is in authenticating the initial value, so that peers can be sure that they haven&#8217;t missed an initial message.</dd>
 </dl>
-<p id="rfc.section.5.2.p.5">In addition to denying endpoints messages, an attacker to generate packets that cause no state change in a recipient.  See <a href="#useless">Section 7.2</a> for a discussion of these risks.</p>
-<p id="rfc.section.5.2.p.6">To avoid receiving TLS packets that contain no useful data, a TLS implementation MUST reject empty TLS handshake records and any record that is not permitted by the TLS state machine.  Any TLS application data or alerts - other than a single end_of_early_data at the appropriate time - that is received prior to the end of the handshake MUST be treated as a fatal error.</p>
-<h2 id="rfc.section.5.3"><a href="#rfc.section.5.3">5.3.</a> <a href="#using-early-data" id="using-early-data">Use of 0-RTT Keys</a></h2>
-<p id="rfc.section.5.3.p.1">If 0-RTT keys are available, the lack of replay protection means that restrictions on their use are necessary to avoid replay attacks on the protocol.</p>
-<p id="rfc.section.5.3.p.2">A client MUST only use 0-RTT keys for the protection of data that is idempotent.  A client MAY wish to apply additional restrictions on what data it sends prior to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as equivalent to 1-RTT keys.</p>
-<p id="rfc.section.5.3.p.3">A client that has successfully used 0-RTT keys can send 0-RTT data until it receives all of the server&#8217;s handshake messages.  A client SHOULD stop sending 0-RTT data if it receives an indication that 0-RTT data has been rejected.  In addition to a ServerHello without an early_data extension, an unprotected handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has been rejected.</p>
-<p id="rfc.section.5.3.p.4">A client SHOULD therefore send its end_of_early_data alert after it has either received all of the server&#8217;s handshake messages, or it receives an unprotected handshake message.  Alternatively phrased, a client is encouraged to use 0-RTT keys until 1-RTT keys become available.  This prevents stalling of the connection and allows the client to send continuously.</p>
-<p id="rfc.section.5.3.p.5">A server MUST NOT use 0-RTT keys for anything other than TLS handshake messages.  Servers therefore treat packets protected with 0-RTT keys as equivalent to unprotected packets in determining what can be sent.  A server protects handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A server MUST still include the early_data extension in its handshake.</p>
-<p id="rfc.section.5.3.p.6">This prevents a server from responding to a request using 0-RTT.  This ensures that all application data from the server enjoy forward secrecy protection.  However, this results in head-of-line blocking at the client because server responses cannot be decrypted until all the server&#8217;s handshake messages are received.</p>
-<h2 id="rfc.section.5.4"><a href="#rfc.section.5.4">5.4.</a> <a href="#pre-handshake-protected" id="pre-handshake-protected">Protected Frames Prior to Handshake Completion</a></h2>
-<p id="rfc.section.5.4.p.1">Due to reordering and loss, protected packets might be received by an endpoint before the final handshake messages are received.  If these can be decrypted successfully, such packets MAY be stored and used once the handshake is complete.</p>
-<p id="rfc.section.5.4.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
-<p id="rfc.section.5.4.p.3">TLS handshake messages are covered by record protection during the handshake, once key agreement has completed.  This means that protected messages need to be decrypted to determine if they are TLS handshake messages or not.  Similarly, <samp>ACK</samp> and <samp>WINDOW_UPDATE</samp> frames might be needed to successfully complete the TLS handshake.</p>
-<p id="rfc.section.5.4.p.4">Any timestamps present in <samp>ACK</samp> frames MUST be ignored rather than causing a fatal error.  Timestamps on protected frames MAY be saved and used once the TLS handshake completes successfully.</p>
-<p id="rfc.section.5.4.p.5">An endpoint MAY save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.  Failing to do this might result in temporary stalling of affected streams.</p>
+<p id="rfc.section.5.1.5.p.5">In addition to denying endpoints messages, an attacker to generate packets that cause no state change in a recipient.  See <a href="#useless">Section 7.2</a> for a discussion of these risks.</p>
+<p id="rfc.section.5.1.5.p.6">To avoid receiving TLS packets that contain no useful data, a TLS implementation MUST reject empty TLS handshake records and any record that is not permitted by the TLS state machine.  Any TLS application data or alerts - other than a single end_of_early_data at the appropriate time - that is received prior to the end of the handshake MUST be treated as a fatal error.</p>
+<h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#using-early-data" id="using-early-data">Use of 0-RTT Keys</a></h2>
+<p id="rfc.section.5.2.p.1">If 0-RTT keys are available, the lack of replay protection means that restrictions on their use are necessary to avoid replay attacks on the protocol.</p>
+<p id="rfc.section.5.2.p.2">A client MUST only use 0-RTT keys for the protection of data that is idempotent.  A client MAY wish to apply additional restrictions on what data it sends prior to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as equivalent to 1-RTT keys.</p>
+<p id="rfc.section.5.2.p.3">A client that has successfully used 0-RTT keys can send 0-RTT data until it receives all of the server&#8217;s handshake messages.  A client SHOULD stop sending 0-RTT data if it receives an indication that 0-RTT data has been rejected.  In addition to a ServerHello without an early_data extension, an unprotected handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has been rejected.</p>
+<p id="rfc.section.5.2.p.4">A client SHOULD therefore send its end_of_early_data alert after it has either received all of the server&#8217;s handshake messages, or it receives an unprotected handshake message.  Alternatively phrased, a client is encouraged to use 0-RTT keys until 1-RTT keys become available.  This prevents stalling of the connection and allows the client to send continuously.</p>
+<p id="rfc.section.5.2.p.5">A server MUST NOT use 0-RTT keys for anything other than TLS handshake messages.  Servers therefore treat packets protected with 0-RTT keys as equivalent to unprotected packets in determining what can be sent.  A server protects handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A server MUST still include the early_data extension in its handshake.</p>
+<p id="rfc.section.5.2.p.6">This prevents a server from responding to a request using 0-RTT.  This ensures that all application data from the server enjoy forward secrecy protection.  However, this results in head-of-line blocking at the client because server responses cannot be decrypted until all the server&#8217;s handshake messages are received.</p>
+<h2 id="rfc.section.5.3"><a href="#rfc.section.5.3">5.3.</a> <a href="#pre-handshake-protected" id="pre-handshake-protected">Protected Frames Prior to Handshake Completion</a></h2>
+<p id="rfc.section.5.3.p.1">Due to reordering and loss, protected packets might be received by an endpoint before the final handshake messages are received.  If these can be decrypted successfully, such packets MAY be stored and used once the handshake is complete.</p>
+<p id="rfc.section.5.3.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
+<p id="rfc.section.5.3.p.3">TLS handshake messages are covered by record protection during the handshake, once key agreement has completed.  This means that protected messages need to be decrypted to determine if they are TLS handshake messages or not.  Similarly, <samp>ACK</samp> and <samp>WINDOW_UPDATE</samp> frames might be needed to successfully complete the TLS handshake.</p>
+<p id="rfc.section.5.3.p.4">Any timestamps present in <samp>ACK</samp> frames MUST be ignored rather than causing a fatal error.  Timestamps on protected frames MAY be saved and used once the TLS handshake completes successfully.</p>
+<p id="rfc.section.5.3.p.5">An endpoint MAY save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.  Failing to do this might result in temporary stalling of affected streams.</p>
 <h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#quic-specific-additions-to-the-tls-handshake" id="quic-specific-additions-to-the-tls-handshake">QUIC-Specific Additions to the TLS Handshake</a></h1>
 <p id="rfc.section.6.p.1">QUIC uses the TLS handshake for more than just negotiation of cryptographic parameters.  The TLS handshake validates protocol version selection, provides preliminary values for QUIC transport parameters, and allows a server to perform return routeability checks on clients.</p>
 <h2 id="rfc.section.6.1"><a href="#rfc.section.6.1">6.1.</a> <a href="#version-negotiation" id="version-negotiation">Protocol and Version Negotiation</a></h2>
