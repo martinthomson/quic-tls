@@ -1,5 +1,5 @@
 ---
-title: Porting QUIC to Transport Layer Security (TLS)
+title: Using Transport Layer Security (TLS) to Secure QUIC
 abbrev: QUIC over TLS
 docname: draft-thomson-quic-tls-latest
 date: 2016
@@ -24,6 +24,7 @@ author:
 
 normative:
   RFC2119:
+  RFC5116:
   I-D.ietf-tls-tls13:
   I-D.tsvwg-quic-protocol:
   RFC7301:
@@ -33,12 +34,13 @@ informative:
   RFC7230:
   RFC7258:
   RFC0793:
+  I-D.ietf-tls-cached-info:
+  RFC7685:
 
 --- abstract
 
-The QUIC experiment defines a custom security protocol.  This was necessary to
-gain handshake latency improvements.  This document describes how that security
-protocol might be replaced with TLS.
+This document describes how Transport Layer Security (TLS) can be used to secure
+QUIC.
 
 
 --- middle
@@ -49,29 +51,17 @@ QUIC [I-D.tsvwg-quic-protocol] provides a multiplexed transport for HTTP
 [RFC7230] semantics that provides several key advantages over HTTP/1.1 [RFC7230]
 or HTTP/2 [RFC7540] over TCP [RFC0793].
 
-The custom security protocol designed for QUIC provides critical latency
-improvements for connection establishment.  Absent packet loss, most new
-connections can be established with a single round trip; on subsequent
-connections between the same client and server, the client can often send
-application data immediately, that is, zero round trip setup.  TLS 1.3 uses a
-similar design and aims to provide the same set of improvements.
+This document describes how QUIC can be secured using Transport Layer Security
+(TLS) version 1.3 [I-D.ietf-tls-tls13].  TLS 1.3 provides critical latency
+improvements for connection establishment over previous versions.  Absent packet
+loss, most new connections can be established and secured within a single round
+trip; on subsequent connections between the same client and server, the client
+can often send application data immediately, that is, zero round trip setup.
 
-This document describes how the standardized TLS 1.3 might serve as a security
-layer for QUIC.  The same design could work for TLS 1.2, though few of the
+This document describes how the standardized TLS 1.3 can act a security
+component of QUIC.  The same design could work for TLS 1.2, though few of the
 benefits QUIC provides would be realized due to the handshake latency in
 versions of TLS prior to 1.3.
-
-Alternative Designs:
-
-: There are other designs that are possible; and many of these alternative
-  designs are likely to be equally good.  The point of this document is to
-  articulate a coherent single design.  Notes like this throughout the document
-  are used describe points where alternatives were considered.
-
-Note:
-
-: This is a rough draft.  Many details have not been ironed out.  Ryan is not
-  responsible for any errors or omissions.
 
 
 ## Notational Conventions
@@ -102,9 +92,9 @@ QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
    frames for both congestion management and stream multiplexing.  Framing
    additionally provides a liveness testing capability (the PING frame).
 
-5. Crypto provides confidentiality and integrity protection for frames.  All
-   frames are protected after the handshake completes on stream 1.  Prior to
-   this, data is protected with the 0-RTT keys.
+5. Encryption provides confidentiality and integrity protection for frames.  All
+   frames are protected based on keying material derived from the TLS connection
+   running on stream 1.  Prior to this, data is protected with the 0-RTT keys.
 
 6. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
    in-order delivery of data and are used to carry the encryption handshake and
@@ -115,35 +105,38 @@ QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
 7. Congestion management includes packet acknowledgment and other signal
    required to ensure effective use of available link capacity.
 
-8. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
+8. A complete TLS connection is run on stream 1.  This includes the entire TLS
+   record layer.  As the TLS connection reaches certain states, keying material
+   is provided to the QUIC encryption layer for protecting the remainder of the
+   QUIC traffic.
+
+9. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
 
 The relative relationship of these components are pictorally represented in
 {{quic-structure}}.
 
 ~~~
-   +----+------+
-   | HS | HTTP |
-   +----+------+------------+
-   |  Streams  | Congestion |
-   +-----------+------------+
-   |        Frames          |
-   +           +------------+
-   |           |    FEC     +--------+
-   +  +--------+------------+ Public |
-   |  |     Crypto          | Reset  |
-   +--+---------------------+--------+
-   |              Envelope           |
-   +---------------------------------+
-   |                UDP              |
-   +---------------------------------+
-
-                             *HS = Crypto Handshake
+   +-----+------+
+   | TLS | HTTP |
+   +-----+------+------------+
+   |  Streams   | Congestion |
+   +------------+------------+
+   |        Frames           |
+   +            +------------+
+   |            |    FEC     +--------+
+   +   +--------+------------+ Public |
+   |   |     Encryption      | Reset  |
+   +---+---------------------+--------+
+   |              Envelope            |
+   +----------------------------------+
+   |                UDP               |
+   +----------------------------------+
 ~~~
 {: #quic-structure title="QUIC Structure"}
 
-This document describes a replacement of the cryptographic parts of QUIC.  This
-includes the handshake messages that are exchanged on stream 1, plus the record
-protection that is used to encrypt and authenticate all other frames.
+This document defines the cryptographic parts of QUIC.  This includes the
+handshake messages that are exchanged on stream 1, plus the record protection
+that is used to encrypt and authenticate all other frames.
 
 
 ## Handshake Overview
@@ -159,7 +152,7 @@ TLS 1.3 provides two basic handshake modes of interest to QUIC:
    carry a self-contained trigger for any non-idempotent action.
 
 A simplified TLS 1.3 handshake with 0-RTT application data is shown in
-{{tls-full}}, see [I-D.ietf-tls-tls13] for more options.
+{{tls-full}}, see [I-D.ietf-tls-tls13] for more options and details.
 
 ~~~
     Client                                             Server
@@ -187,255 +180,280 @@ document:
  * The server can respond to a ClientHello with a HelloRetryRequest, which adds
    an additional round trip prior to the basic exchange.  This is needed if the
    server wishes to request a different key exchange key from the client.
-   HelloRetryRequest might also be used to verify that the client is correctly
-   able to receive packets on the address it claims to have (see
-   {{source-address}}).
+   HelloRetryRequest is also used to verify that the client is correctly able to
+   receive packets on the address it claims to have (see {{source-address}}).
 
  * A pre-shared key mode can be used for subsequent handshakes to avoid public
-   key operations.  This might be the basis for 0-RTT, even if the remainder of
-   the connection is protected by a new Diffie-Hellman exchange.
+   key operations.  This is the basis for 0-RTT, even if the remainder of the
+   connection is protected by a new Diffie-Hellman exchange.
 
 
-# QUIC over TLS Structure
+# TLS in Stream 1
 
 QUIC completes its cryptographic handshake on stream 1, which means that the
-negotiation of keying material happens within the QUIC protocol.  QUIC over TLS
-does the same, relying on the ordered delivery guarantees provided by QUIC to
-ensure that the TLS handshake packets are delivered reliably and in order.
+negotiation of keying material happens after the QUIC protocol has started.
+This simplifies the use of TLS since QUIC is able to ensure that the TLS
+handshake packets are delivered reliably and in order.
 
-~~~
-   +-----+---------+
-   | TLS |  HTTP   |
-   +-----+----------+------------+
-   |    Streams     | Congestion |
-   +----------------+------------+
-   |          Frames             |
-   |                +------------+
-   |                |    FEC     +--------+
-   |     +----------+------------+ Public |
-   |     | TLS Record Protection | Reset  |
-   +-----+-----------------------+--------+
-   |               Envelope               |
-   +--------------------------------------+
-   |                 UDP                  |
-   +--------------------------------------+
-~~~
-{: #tls-quic-stack title="QUIC over TLS"}
-
-In this design the QUIC envelope carries QUIC frames until the TLS handshake
-completes.  After the handshake successfully completes the key exchange, QUIC
-frames are then protected by TLS record protection.
-
-QUIC stream 1 is used to exchange TLS handshake packets.  QUIC provides for
-reliable and in-order delivery of the TLS handshake messages.
+QUIC Stream 1 carries a complete TLS connection.  This includes the TLS record
+layer in its entirety.  QUIC provides for reliable and in-order delivery of the
+TLS handshake messages on this stream.
 
 Prior to the completion of the TLS handshake, QUIC frames can be exchanged.
 However, these frames are not authenticated or confidentiality protected.
-{{pre-handshake}} covers some of the implications of this design.
+{{pre-handshake}} covers some of the implications of this design and limitations
+on QUIC operation during this phase.
 
-Alternative Design:
-
-: TLS could be used to protect the entire QUIC envelope.  QUIC version
-  negotiation could be subsumed by TLS and ALPN [RFC7301].  The only unprotected
-  packets are then public resets and ACK frames, both of which could be given
-  first octet values that would easily distinguish them from other TLS packets.
-  This requires that the QUIC sequence numbers be moved to the outside of the
-  record.
-
-
-# Mapping of QUIC to QUIC over TLS
-
-Several changes to the structure of QUIC are necessary to make a layered design
-practical.
-
-These changes produce the handshake shown in {{quic-tls-handshake}}.  In this
-handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.  QUIC is
-responsible for ensuring that the handshake packets are re-sent in case of loss
-and that they can be ordered correctly.
-
-QUIC operates without any record protection until the handshake completes, just
-as TLS over TCP does not include record protection for the handshake messages.
 Once complete, QUIC frames and forward error control (FEC) messages are
 encapsulated in using TLS record protection.
+
+
+## Handshake and Setup Sequence
+
+The integration of QUIC with a TLS handshake is shown in more detail in
+{{quic-tls-handshake}}.  QUIC `STREAM` frames on stream 1 carry the TLS
+handshake.  QUIC is responsible for ensuring that the handshake packets are
+re-sent in case of loss and that they can be ordered correctly.
 
 ~~~
     Client                                             Server
 
-   QUIC STREAM Frame <stream 1>
-    ClientHello
-     + QUIC Setup Parameters
-   (Finished)                 -------->
-   (Replayable QUIC Frames <any stream>)
-   (end_of_early_data <1>) -------->
-                                         QUIC STREAM Frame <1>
-                                                  ServerHello
-                                         {EncryptedExtensions}
-                                         {ServerConfiguration}
-                                                 {Certificate}
-                                           {CertificateVerify}
-                                                    {Finished}
-                             <--------       [QUIC Frames/FEC]
-   QUIC STREAM Frame <1>
-   {Finished}                -------->
+   QUIC STREAM Frame(s) <1>:
+     ClientHello
+       + QUIC Setup Parameters
+                            -------->
+   ! 0-RTT Key Available
 
-   [QUIC Frames/FEC]         <------->       [QUIC Frames/FEC]
+   (QUIC STREAM Frame(s) <1>:)
+     (({Finished}))
+   (Replayable QUIC Frames <any stream>)
+                            -------->
+                                         0-RTT Key Available !
+
+                                      (QUIC STREAM Frame <1>:)
+                                               (ServerHello)
+                                      ({Handshake Messages})
+                            <--------
+                                         1-RTT Key Available !
+
+                                             [QUIC Frames/FEC]
+                            <--------
+   (QUIC STREAM Frame(s) <1>:)
+     ((end_of_early_data <1>))
+     ({Finished})
+                            -------->
+   ! 1-RTT Key Available
+
+   [QUIC Frames/FEC]        <------->        [QUIC Frames/FEC]
 ~~~
 {: #quic-tls-handshake title="QUIC over TLS Handshake"}
 
-The remainder of this document describes the changes to QUIC and TLS that allow
-the protocols to operate together.
+In {{quic-tls-handshake}}, symbols mean:
+
+* "<" and ">" enclose stream numbers.
+* "!" indicates when keying material is available.
+* "(" and ")" enclose messages that are protected with QUIC or TLS 0-RTT keys.
+  If 0-RTT is not possible, or not accepted, then regular frames protected by
+  this keys are not sent by the client, and the server sends its handshake
+  messages without protection.
+* "{" and "}" enclose messages that are protected by the TLS Handshake
+  keys. Note that the client's 0-RTT Finished message is protected by the QUIC
+  0-RTT key, plus the TLS 0-RTT handshake key.
+* "[" and "]" enclose messages that are protected by the QUIC 1-RTT keys.
 
 
-## Protocol and Version Negotiation {#version-negotiation}
+# QUIC Record Protection
 
-The QUIC version negotiation mechanism is used to negotiate the version of QUIC
-that is used prior to the completion of the handshake.  However, this packet is
-not authenticated, enabling an active attacker to force a version downgrade.
+QUIC provides a record protection layer that is responsible for authenticated
+encryption of packets.  The record protection layer uses keys provided by the
+TLS connection and authenticated encryption to
 
-To ensure that a QUIC version downgrade is not forced by an attacker, version
-information is copied into the TLS handshake, which provides integrity
-protection for the QUIC negotiation.  This doesn't prevent version downgrade
-during the handshake, though it does prevent a connection from completing with a
-downgraded version, see {{quic_parameters}}.
-
-ISSUE:
-
-: The QUIC version negotiation has poor performance in the event that a client
-  is forced to downgrade from their preferred version.
+Different keys are used for QUIC and TLS record protection.  Having separate
+QUIC and TLS record protection means that TLS records can be protected by two
+different keys.  This redundancy is maintained for the sake of simplicity.
 
 
-## Source Address Validation {#source-address}
+## Key Phases
 
-QUIC implementations describe a source address token.  This is an opaque blob
-that a server provides to clients when they first use a given source address.
-The client returns this token in subsequent messages as a return routeability
-check.  That is, the client returns this token to prove that it is able to
-receive packets at the source address that it claims.
+The transition to use of a new QUIC key occurs immediately after sending the TLS
+handshake messages that produced the key transition.  Every time that a new set
+of keys is used for protecting outbound messages, the KEY_PHASE bit in the
+public flags is toggled.  The KEY_PHASE bit on unencrypted messages is 0.
 
-Since this token is opaque and consumed only by the server, it can be included
-in the TLS 1.3 configuration identifier for 0-RTT handshakes.  Servers that use
-0-RTT are advised to provide new configuration identifiers after every handshake
-to avoid passive linkability of connections from the same client.
+The KEY_PHASE bit on the public flags is the most significant bit (0x80).
 
-A server that is under load might include the same information in the cookie
-extension/field of a HelloRetryRequest. (Note: the current version of TLS 1.3
-does not include the ability to include a cookie in HelloRetryRequest.)
+The KEY_PHASE bit allows a recipient to detect a change in keying material
+without needing to receive the message that triggers the change.  This avoids
+head-of-line blocking around transitions between keys without relying on trial
+decryption.
 
+The following transitions are defined:
 
-# Record Protection
+* The client transitions to using 0-RTT keys after sending the ClientHello.
+  This causes the KEY_PHASE bit on packets sent by the client to be set to 1.
 
-Each TLS record is encapsulated in the QUIC envelope.  This provides length
-information, which means that the length field can be dropped from the TLS
-record.
+* The server transitions to using 0-RTT keys before sending the ServerHello, but
+  only if the early data from the client is accepted.  This transition causes
+  the KEY_PHASE bit on packets sent by the server to be set to 1.  If the server
+  rejects 0-RTT data, the server's handshake messages are sent without
+  QUIC-level record protection with a KEY_PHASE of 0.  TLS handshake messages
+  will still be protected by TLS record protection based on the TLS handshake
+  traffic keys.
 
-The sequence number used by TLS record protection is changed to deal with the
-potential for packets to be dropped or lost.  The QUIC sequence number is used
-in place of the monotonically increasing TLS record sequence number.  This means
-that the TLS record protection employed is closer to DTLS in both its form and
-the guarantees that are provided.
+* The server transitions to using 1-RTT keys after sending its Finished message.
+  This causes the KEY_PHASE bit to be set to 0 if early data was accepted, and 1
+  if the server rejected early data.
 
-QUIC has a single, contiguous sequence number space.  In comparison, TLS
-restarts its sequence number each time that record protection keys are changed.
-The sequence number restart in TLS ensures that a compromise of the current
-traffic keys does not allow an attacker to truncate the data that is sent after
-a key update by sending additional packets under the old key (causing new
-packets to be discarded).
+* The client transitions to 1-RTT keys after sending its Finished message.
+  Subsequent messages from the client will then have a KEY_PHASE of 0 if 0-RTT
+  data was sent, and 1 otherwise.
 
-QUIC does not rely on there being a continuous sequence of application data
-packets; QUIC uses authenticated repair mechansims that operate above the layer
-of encryption.  QUIC can therefore operate without restarting sequence numbers.
+* Both peers start sending messages protected by a new key immediately after
+  sending a TLS KeyUpdate message. The value of the KEY_PHASE bit is changed
+  each time.
 
+At each point, both keying material (see {{key-expansion}}) and the the AEAD
+function used by TLS is interchanged with the values that are currently in use
+for protecting outbound packets.  Once a change of keys has been made, packets
+with higher sequence numbers MUST use the new keying material until a newer set
+of keys (and AEAD) are used.
 
-## TLS Handshake Encryption
+Once a packet protected by a new key has been received, a recipient SHOULD
+retain the previous keys for a short period.  Retaining old keys allows the
+recipient to decode reordered packets around a change in keys.  Keys SHOULD be
+discarded when an endpoints has received all packets with sequence numbers lower
+than the lowest sequence number used for the new key, or when it determines that
+reordering of those packets is unlikely.
 
-TLS 1.3 adds encryption for handshake messages.  This introduces an additional
-transition between different record protection keys during the handshake.  A
-consequence of this is that it becomes more important to explicitly identify the
-transition from one set of keys to the next (see {{key-update}}).
+The KEY_PHASE bit does not indicate which keys are in use.  Depending on whether
+0-RTT data was sent and accepted, packets protected with keys derived from the
+same secret might be marked with different KEY_PHASE values.
 
-
-## Key Update {#key-update}
-
-Each time that the TLS record protection keys are changed, the message
-initiating the change could be lost.  This results in subsequent packets being
-indecipherable to the peer that receives them.  Key changes happen at the
-conclusion of the handshake and and immediately after a KeyUpdate message.
-
-TLS relies on an ordered, reliable transport and therefore provides no other
-mechanism to ensure that a peer receives the message initiating a key change
-prior to receiving the subsequent messages that are protected using the new
-key.  A similar mechanism here would introduce head-of-line blocking.
-
-The simplest solution here is to steal a single bit from the unprotected part of
-the QUIC header that signals key updates, similar to how DTLS signals the epoch
-on each packet.  The epoch bit is encoded into 0x80 of the QUIC public flags.
-
-Each time the epoch bit changes, an attempt is made to update the keys used to
-read.  Peers are prohibited from sending multiple KeyUpdate messages until they
-see a reciprocal KeyUpdate to prevent the chance that a transition is undetected
-as a result of two changes in this bit.
-
-The transition from cleartext to encrypted packets is exempt from this limit of
-one key change.  Two key changes occur during the handshake.  The server sends
-packets in the clear, plus packets protected using handshake and application
-data keys.  With only a single bit available to discriminate between keys,
-packets protected with the application data keys will have the same bit value as
-cleartext packets.  This condition will be easily identified and handled, likely
-by discarding the application data, since the encrypted packets will be highly
-unlikely to be valid.
+Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing
+of messages without having to receive the TLS KeyUpdate message that triggers
+the key update.  As required by TLS, only one key update can be in progress at a
+time and each peer cannot initiate a new key update until it has received a
+matching KeyUpdate message.  This ensures that a peer cannot initiate two
+consecutive updates, which could be undetectable based on the KEY_PHASE bit.
 
 
-## Sequence Number Reconstruction
+## QUIC Key Expansion {#key-expansion}
 
-Each peer maintains a 48-bit send sequence number that is incremented with each
-packet that is sent (even retransmissions).  The least significant 8-, 16-, 32-,
-or 48-bits of this number is encoded in the QUIC sequence number field in every
-packet.  A 16-bit send epoch number is maintained; the epoch is incremented each
-time new record protection keying material is used.  The least significant bit
-of the epoch number is encoded into the epoch bit (0x80) of the QUIC public flags.
+The following table shows QUIC keys, when they are generated and the TLS secret
+from which they are derived:
+
+| Key | TLS Secret | Phase |
+|:----|:-----------|:------|
+| 0-RTT | early_traffic_secret | "QUIC 0-RTT key expansion" |
+| 1-RTT | traffic_secret_N | "QUIC 1-RTT key expansion" |
+
+0-RTT keys are those keys that are used in resumed connections prior to the TLS
+handshake completes.  Data sent using 0-RTT keys might be replayed and so has
+some restructions on its use, see {{using-early-data}}.  0-RTT keys are used
+after sending or receiving a ClientHello.
+
+1-RTT keys are used after the handshake completes.  There are potentially
+multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS
+KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate
+message.
+
+The complete key expansion uses the same process for key expansion as defined in
+Section 7.3 of [I-D.ietf-tls-tls13].  For example, the Client Write Key for the
+data sent immediately after sending the TLS Finished message is:
+
+~~~
+   label = "QUIC 1-RTT key expansion, client write key"
+   client_write = HKDF-Expand-Label(traffic_secret_0, label,
+                                    "", key_length)
+~~~
+
+The QUIC record protection initially starts without keying material.  When the
+TLS state machine produces the corresponding secret, new keys are generated from
+the TLS connection and used to protect the QUIC record protection.
+
+The Authentication Encryption with Associated Data (AEAD) [RFC5116] function
+used is the one used by the TLS connection.  For example, if TLS is using the
+TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.
+
+
+## QUIC AEAD application
+
+Regular QUIC packets are protected by an AEAD [RFC5116].  Version negotiation
+and public reset packets are not protected.
+
+Once TLS has provided a key, the contents of regular QUIC packets, starting
+immediately after the packet number are protected by the AEAD selected by TLS.
+
+The key, K, for the AEAD is either the Client Write Key or the Server Write Key,
+derived as defined in {{key-expansion}}.
+
+The nonce, N, for the AEAD is formed by combining either the Client Write IV or
+Server Write IV with the sequence numbers.  The 48 bits of the reconstructed
+QUIC sequence number (see {{seq-num}}) in network byte order is left-padded with
+zeros to the N_MAX parameter of the AEAD (see Section 4 of [RFC5116]).  The
+exclusive OR of the padded sequence number and the IV forms the AEAD nonce.
+
+The associated data, A, for the AEAD is an empty sequence.
+
+The input plaintext, P, for the AEAD is the contents of the QUIC frame following
+the packet number, as described in [I-D.tsvwg-quic-protocol].
+
+The output ciphertext, C, of the AEAD is transmitted in place of P.
+
+Prior to TLS providing keys, no record protection is performed and the
+plaintext, P, is transmitted unmodified.
+
+Note:
+
+: QUIC defined a null-encryption that had an additional, hash-based checksum for
+  cleartext packets.  This might be added here, but it is more complex.
+
+
+## Sequence Number Reconstruction {#seq-num}
+
+Each peer maintains a 48-bit sequence number that is incremented with every
+packet that is sent, including retransmissions.  The least significant 8-, 16-,
+32-, or 48-bits of this number is encoded in the QUIC sequence number field in
+every packet.
 
 A receiver maintains the same values, but recovers values based on the packets
 it receives.  This is based on the sequence number of packets that it has
 received.  A simple scheme predicts the receive sequence number of an incoming
 packet by incrementing the sequence number of the most recent packet to be
 successfully decrypted by one and expecting the sequence number to be within a
-range centered on that value.  The receive epoch value is incremented each time
-that the epoch bit (0x80) changes.
+range centered on that value.
 
-The sequence number used for record protection is the 64-bit value obtained by
-concatenating the epoch and sequence number, both in network byte order.
+A more sophisticated algorithm can almost double the search space by checking
+backwards from the most recent sequence for a received (or abandoned) packet.
+If a packet was received, then the packet contains a sequence number that is
+greater than the most recent sequence number.  If no such packet was found, the
+number is assumed to be in the smaller window centered on the next sequence
+number, as in the simpler scheme.
 
+Note:
 
-## Alternative Design: Exporters
+: QUIC has a single, contiguous sequence number space.  In comparison, TLS
+  restarts its sequence number each time that record protection keys are
+  changed.  The sequence number restart in TLS ensures that a compromise of the
+  current traffic keys does not allow an attacker to truncate the data that is
+  sent after a key update by sending additional packets under the old key
+  (causing new packets to be discarded).
 
-An exporter could be used to provide keying material for a QUIC-specific record
-protection.  This could draw on the selected cipher suite and the TLS record
-protection design so that the overall effort required to design and analyze is
-kept minimal.
+  QUIC does not assume a reliable transport and is therefore required to handle
+  attacks where packets are dropped in other ways.
 
-One concern with using exporters is that TLS doesn't define an exporter for use
-prior to the end of the handshake.  That means the creation of a special
-exporter for use in protecting 0-RTT data.  That's a pretty sharp object to
-leave lying around, and it's not clear what the properties we could provide.
-(That doesn't mean that there wouldn't be demand for such a thing, the
-possibility has already been raised.)
-
-An exporter-based scheme might opt not to use the handshake traffic keys to
-protect QUIC packets during the handshake, relying instead on separate
-protection for the TLS handshake records.  This complicates implementations
-somewhat, so an exporter might still be used.
-
-In the end, using an exporter doesn't alter the design significantly.  Given the
-risks, a modification to the record protocol is probably safer.
+  TLS maintains a separate sequence number that is used for record protection on
+  the connection that is hosted on stream 1.  This sequence number is reset
+  according to the rules in the TLS protocol.
 
 
 # Pre-handshake QUIC Messages {#pre-handshake}
 
 Implementations MUST NOT exchange data on any stream other than stream 1 prior
-to the TLS handshake completing.  However, QUIC requires the use of several
-types of frame for managing loss detection and recovery.  In addition, it might
-be useful to use the data acquired during the exchange of unauthenticated
-messages for congestion management.
+to the completion of the TLS handshake.  However, QUIC requires the use of
+several types of frame for managing loss detection and recovery.  In addition,
+it might be useful to use the data acquired during the exchange of
+unauthenticated messages for congestion management.
 
 The actions that a peer takes as a result of receiving an unauthenticated packet
 needs tobe limited.  In particular, state established by these packets cannot be
@@ -459,143 +477,8 @@ proposes that all strategies are possible depending on the type of message.
 * Most unprotected messages are treated as fatal errors when received except for
   the small number necessary to permit the handshake to complete (see
   {{pre-handshake-unprotected}}).
-* Protected packets can be discarded, but can be saved and later used (see
+* Protected packets can either be discarded or saved and later used (see
   {{pre-handshake-protected}}).
-
-
-## QUIC Extension {#quic_parameters}
-
-A client describes characteristics of the transport protocol it intends to
-conduct with the server in a new QUIC-specific extension in its ClientHello.
-The server uses this information to determine whether it wants to continue the
-connection, request source address validation, or reject the connection.  Having
-this information unencrypted permits this check to occur prior to committing the
-resources needed to complete the initial key exchange.
-
-If the server decides to complete the connection, it generates a corresponding
-response and includes it in the EncryptedExtensions message.
-
-These parameters are not confidentiality-protected when sent by the client, but
-the server response is protected by the handshake traffic keys.  The entire
-exchange is integrity protected once the handshake completes.
-
-This information is not used by TLS, but can be passed to the QUIC protocol as
-initialization parmeters.
-
-The `quic_parameters` extension contains a declarative set of parameters that
-establish QUIC operating parameters and constrain the behaviour of a peer.  The
-connection identifier and version are first negotiated using QUIC, and are
-included in the TLS handshake in order to provide integrity protection.
-
-~~~
-   enum {
-       receive_buffer(0),
-       (65535)
-   } QuicTransportParameterType;
-
-   struct {
-       QuicTransportParameterType type;
-       uint32 value;
-   } QuicTransportParameter;
-
-   uint32 QuicVersion;
-
-   enum {
-       (65535)
-   } QuicOption;
-
-   struct {
-       uint64 connection_id;
-       QuicVersion quic_version;
-       QuicVersion supported_quic_versions<0..2^8-1>;
-       uint32 connection_initial_window;
-       uint32 stream_initial_window;
-       uint32 implicit_shutdown_timeout;
-       QuicTransportParameter transport_parameters<0..2^16-1>;
-       QuicOption options<0..2^8-2>;
-   } QuicParametersExtension;
-~~~
-
-This extension MUST be included if a QUIC version is negotiated.  A server MUST
-NOT negotiate QUIC if this extension is not present.
-
-Based on the values offered by a client a server MAY use the values in this
-extension to determine whether it wants to continue the connection, request
-source address validation, or reject the connection.  Since this extension is
-initially unencrypted, the server can use the information prior to committing
-the resources needed to complete a key exchange.
-
-If the server decides to use QUIC, this extension MUST be included in the
-EncryptedExtensions message.
-
-The parameters are:
-
-connection_id:
-
-: The 64-bit connection identifier for the connection, as selected by the
-  client.
-
-quic_version:
-
-: The currently selected QUIC version that is used for the connection.  This is
-  the version negotiated using the unauthenticated QUIC version negotiation
-  ({{version-negotiation}}).
-
-supported_quic_versions:
-
-: This is a list of supported QUIC versions for each peer.  A client sends an
-  empty list if the version of QUIC being used is their preferred version;
-  however, a client MUST include their preferred version if this was not
-  negotiated using QUIC version negotiation.  A server MUST include all versions
-  that it supports in this list.
-
-connection_initial_window:
-
-: The initial value for the connection flow control window for the endpoint, in
-  octets.
-
-connection_initial_window:
-
-: The initial value for the flow control window of new streams created by the
-  peer endpoint, in octets.
-
-implicit_shutdown_timeout:
-
-: The time, in seconds, that a connection can remain idle before being
-  implicitly shutdown.
-
-transport_parameters:
-
-: A list of parameters for the QUIC connection, expressed as key-value pairs of
-  arbitrary length.  The QuicTransportParameterType identifies each parameter;
-  duplicate types are not permitted and MUST be rejected with a fatal
-  illegal_parameter alert.  Type values are taken from a single space that is
-  shared by all QUIC versions.
-
-  ISSUE:
-
-  : There is currently no way to update the value of parameters once the
-    connection has started.  QUIC crypto provided a SCFG message that could be
-    sent after the connection was established.
-
-options:
-
-: A list of options that can be negotiated for a given connection.  These are
-  set during the initial handshake and are fixed thereafter.  These options are
-  used to enable or disable optional features in the protocol.
-
-  The set of features that are supported across different versions might vary.
-  A client SHOULD include all options that it is willing to use.  The server MAY
-  select any subset of those options that apply to the version of QUIC that it
-  selects.  Only those options selected by the server are available for use.
-
-  Note:
-
-  : This sort of optional behaviour seems like it could be accommodated
-    adequately by defining new versions of QUIC for each experiment.  However,
-    as an evolving protocol, multiple experiments need to be conducted
-    concurrently and continuously.  The options parameter provides a flexible
-    way to regulate which experiments are enabled on a per-connection basis.
 
 
 ## Unprotected Frames Prior to Handshake Completion {#pre-handshake-unprotected}
@@ -613,8 +496,14 @@ fatal error.
 `STREAM` frames for stream 1 are permitted.  These carry the TLS handshake
 messages.
 
-Receiving unprotected `STREAM` frames that do not contain TLS handshake messages
-MUST be treated as a fatal error.
+Receiving unprotected `STREAM` frames or unprotected `STREAM` frames for other
+streams MUST be treated as a fatal error.
+
+Issue:
+
+: Is it possible to send a `STREAM` frame for stream 1 that contains no data?
+  Is this detectable?  Does it comprise an attack?  For instance, could an
+  attacker inject a frame that appears to contain TLS application data?
 
 
 ### ACK Frames
@@ -639,47 +528,95 @@ Editor's Note:
 
 ### WINDOW_UPDATE Frames
 
-Sending a `WINDOW_UPDATE` on stream 1 might be necessary to permit the
-completion of the TLS handshake, particularly in cases where the certification
-path is lengthy.  To avoid stalling due to flow control exhaustion,
-`WINDOW_UPDATE` frames with stream 1 are permitted.
+`WINDOW_UPDATE` frames MUST NOT be sent unprotected.
 
-Receiving a `WINDOW_UPDATE` frame on streams other than 1 MUST be treated as a
-fatal error.
+Though data is exchanged on stream 1, the initial flow control window is is
+sufficiently large to allow the TLS handshake to complete.  However, this limits
+the maximum size of the TLS handshake.  This is unlikely to cause issues unless
+a server or client provides an abnormally large certificate chain.
 
 Stream 1 is exempt from the connection-level flow control window.
-
-The position of the flow control window MUST be reset to defaults once the TLS
-handshake is complete.  This might result in the window position for either the
-connection or stream 1 being smaller than the number of octets that have been
-sent on those streams.  A `WINDOW_UPDATE` frame might therefore be necessary to
-prevent stream 1 from being stalled.
-
-Note:
-
-: This is only potentially problematic for servers, who might need to send large
-  certificate chains.  In other cases, this is unlikely given that QUIC - like
-  HTTP [RFC7230] - is a protocol where the server is unable to exercise the
-  opportunity TLS presents to send first.
-
-: If a server has a large certificate chain, or later modifications or
-  extensions to QUIC permit the server to send first, a client might reduce the
-  chance of stalling due to flow control in this first round trip by setting
-  larger values for the initial stream and connection flow control windows using
-  the `quic_parameters` extension ({{quic_parameters}}).
-
-Editor's Note:
-
-: Unlike `ACK`, the prohibition on `WINDOW_UPDATE` is much less of an imposition
-  on implementations.  And, given that a spurious `WINDOW_UPDATE` might be used
-  to create a great deal of memory pressure on an endpoint, the restriction
-  seems justifiable.  Besides, I understand this one a lot better.
 
 
 ### FEC Packets
 
 FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints
 MUST treat receipt of an unprotected FEC packet as a fatal error.
+
+
+### Denial of Service with Unprotected Packets
+
+Accepting unprotected - specifically unauthenticated - packets presents a denial
+of service risk to endpoints.  An attacker that is able to inject unprotected
+packets can cause a recipient to drop even protected packets with a matching
+sequence number.  Given the restrictions on unprotected packets, the following
+options are available:
+
+* `ACK` packets can be spoofed and might be processed by a recipient.  ACK
+  packets will cause the recipient of the `ACK` to - perhaps falsely - believe
+  that their messages have been received when they have not.
+
+* Spoofed `ACK` packets that have no effect on the state of a recipient still
+  consume a sequence number, one that might be used by legitimate packets.  This
+  causes the recipient to drop the legitimate packet, which might result in a
+  request for a retransmission.
+
+* Spoofed `STREAM` packets need to be on stream 1 for an endpoint to accept
+  them.  These either contain new data or they contain a retransmission of data
+  that has already been received (is this permitted without an `ACK`?).  An
+  implementation might accept empty TLS records without altering the TLS state
+  machine.
+
+  To that end, a TLS implementation MUST reject empty TLS handshake records and
+  any record that is not permitted by the TLS state machine.  Any TLS
+  application data or alerts - other than a single end_of_early_data at the
+  appropriate time - that is received prior to the end of the handshake MUST be
+  treated as a fatal error.
+
+Once an encrypted packet has been accepted, unprotected packets MUST be dropped
+if they have a higher sequence number than the encrypted packet.
+
+As a result, an attacker that intends to deny service to an endpoint has to drop
+protected packets in order to ensure that their victim continues to accept
+unprotected packets.  This means that an attacker has to be on-path for this to
+be effective, at which point they are better served by dropping the packets that
+they don't wish the recipient to receive.
+
+
+## Use of 0-RTT Keys {#using-early-data}
+
+If 0-RTT keys are available, the lack of replay protection means that
+restrictions on their use are necessary to avoid replay attacks on the protocol.
+
+A client MUST only use 0-RTT keys for the protection of data that is idempotent.
+A client MAY wish to apply additional restrictions on what data it sends prior
+to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as
+equivalent to 1-RTT keys.
+
+A client that has successfully used 0-RTT keys can send 0-RTT data until it
+receives all of the server's handshake messages.  A client SHOULD stop sending
+0-RTT data if it receives an indication that 0-RTT data has been rejected.  In
+addition to a ServerHello without an early_data extension, an unprotected
+handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has
+been rejected.
+
+A client SHOULD therefore send its end_of_early_data alert after it has either
+received all of the server's handshake messages, or it receives an unprotected
+handshake message.  Alternatively phrased, a client is encouraged to use 0-RTT
+keys until 1-RTT keys become available.  This prevents stalling of the
+connection and allows the client to send continuously.
+
+A server MUST NOT use 0-RTT keys for anything other than TLS handshake messages.
+Servers therefore treat packets protected with 0-RTT keys as equivalent to
+unprotected packets in determining what can be sent.  A server protects
+handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A
+server MUST still include the early_data extension in its handshake.
+
+This prevents a server from responding to a request using 0-RTT.  This ensures
+that all application data from the server enjoy forward secrecy protection.
+However, this results in head-of-line blocking at the client because server
+responses cannot be decrypted until all the server's handshake messages are
+received.
 
 
 ## Protected Frames Prior to Handshake Completion {#pre-handshake-protected}
@@ -710,31 +647,77 @@ each stream and apply the values once the TLS handshake completes.  Failing
 to do this might result in temporary stalling of affected streams.
 
 
-# Connection ID
+# QUIC-Specific Additions to the TLS Handshake
 
-The QUIC connection identifier serves to identify a connection and to allow a
-server to resume an existing connection from a new client address in case of
-mobility events.  However, this creates an identifier that a passive observer
-[RFC7258] can use to correlate connections.
+QUIC uses the TLS handshake for more than just negotiation of cryptographic
+parameters.  The TLS handshake validates protocol version selection, provides
+preliminary values for QUIC transport parameters, and allows a server to perform
+return routeability checks on clients.
 
-TLS 1.3 offers connection resumption using pre-shared keys, which also allows a
-client to send 0-RTT application data.  This mode could be used to continue a
-connection rather than rely on a publicly visible correlator.  This only
-requires that servers produce a new ticket on every connection and that clients
-do not resume from the same ticket more than once.
 
-The advantage of relying on 0-RTT modes for mobility events is that this is also
-more robust.  If the new point of attachment results in contacting a new server
-instance - one that lacks the session state - then a fallback is easy.
+## Protocol and Version Negotiation {#version-negotiation}
 
-The main drawback with a clean restart or anything resembling a restart is that
-accumulated state can be lost.  Aside from progress on incomplete requests, the
-state of the HPACK header compression table could be quite valuable.  Existing
-QUIC implementations use the connection ID to route packets to the server that
-is handling the connection, which avoids this sort of problem.
+The QUIC version negotiation mechanism is used to negotiate the version of QUIC
+that is used prior to the completion of the handshake.  However, this packet is
+not authenticated, enabling an active attacker to force a version downgrade.
 
-A lightweight state resurrection extension might be used to avoid having to
-recreate any expensive state.
+To ensure that a QUIC version downgrade is not forced by an attacker, version
+information is copied into the TLS handshake, which provides integrity
+protection for the QUIC negotiation.  This does not prevent version downgrade
+during the handshake, though it means that such a downgrade causes a handshake
+failure.
+
+TBD:
+
+: Determine whether we are using ALPN or a new quic_version extension and
+  describe that fully.
+
+
+## QUIC Extension {#quic_parameters}
+
+QUIC defines an extension for use with TLS.  That extension defines
+transport-related parameters.  This provides integrity protection for these
+values.  Including these in the TLS handshake also make the values that a client
+sets available to a server one-round trip earlier than parameters that are
+carried in QUIC frames.  This document does not define that extension.
+
+
+## Source Address Validation {#source-address}
+
+QUIC implementations describe a source address token.  This is an opaque blob
+that a server might provide to clients when they first use a given source
+address.  The client returns this token in subsequent messages as a return
+routeability check.  That is, the client returns this token to prove that it is
+able to receive packets at the source address that it claims.  This prevents the
+server from being used in packet reflection attacks.
+
+A source address token is opaque and consumed only by the server.  Therefore it
+can be included in the TLS 1.3 pre-shared key identifier for 0-RTT handshakes.
+Servers that use 0-RTT are advised to provide new pre-shared key identifiers
+after every handshake to avoid linkability of connections by passive observers.
+Clients MUST use a new pre-shared key identifier for every connection that they
+initiate; if no pre-shared key identifier is available, then resumption is not
+possible.
+
+A server that is under load might include a source address token in the cookie
+extension of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not
+include the ability to include a cookie in HelloRetryRequest.)
+
+
+## Packet Reflection Attack Mitigation
+
+A small ClientHello that results in a large block of handshake messages from a
+server can be used in packet reflection attacks to amplify the traffic generated
+by an attacker.
+
+Certificate caching [I-D.ietf-tls-cached-info] can reduce the size of the
+server's handshake messages significantly.
+
+A client SHOULD also pad [RFC7685] its ClientHello to at least 1024 octets (TBD:
+tune this value).  A server is less likely to generate a packet reflection
+attack if the data it sends is a small multiple of the data it receives.  A
+server SHOULD use a HelloRetryRequest if the size of the handshake messages it
+sends is likely to exceed the size of the ClientHello.
 
 
 # Security Considerations
@@ -757,6 +740,6 @@ This document has no IANA actions.  Yet.
 
 Christian Huitema's knowledge of QUIC is far better than my own.  This would be
 even more inaccurate and useless if not for his assistance.  This document has
-variously benefited from a long series of discussions with Ryan Hamilton, Jana
-Iyengar, Adam Langley, Roberto Peon, Ian Swett, and likely many others who are
+variously benefited from a long series of discussions with Jana Iyengar, Adam
+Langley, Roberto Peon, Eric Rescorla, Ian Swett, and likely many others who are
 merely forgotten by a faulty meat computer.
