@@ -269,7 +269,8 @@ In {{quic-tls-handshake}}, symbols mean:
 
 QUIC provides a record protection layer that is responsible for authenticated
 encryption of packets.  The record protection layer uses keys provided by the
-TLS connection and authenticated encryption to
+TLS connection and authenticated encryption to provide confidentiality and
+integrity protection for the content of packets.
 
 Different keys are used for QUIC and TLS record protection.  Having separate
 QUIC and TLS record protection means that TLS records can be protected by two
@@ -334,10 +335,12 @@ same secret might be marked with different KEY_PHASE values.
 
 Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing
 of messages without having to receive the TLS KeyUpdate message that triggers
-the key update.  As required by TLS, only one key update can be in progress at a
-time and each peer cannot initiate a new key update until it has received a
-matching KeyUpdate message.  This ensures that a peer cannot initiate two
-consecutive updates, which could be undetectable based on the KEY_PHASE bit.
+the key update.  An endpoint MUST NOT initiate more than one key update at a
+time.  A new key update cannot be sent until the endpoint has received a
+matching KeyUpdate message from its peer; or, if the endpoint did not initiate
+the original key update, it has received an acknowledgment of its own KeyUpdate.
+This ensures that there are at most two keys to distinguish between at any one
+time, for which the KEY_PHASE bit is sufficient.
 
 
 ## Retransmission of TLS Handshake Messages
