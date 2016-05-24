@@ -95,6 +95,8 @@ QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
 5. Encryption provides confidentiality and integrity protection for frames.  All
    frames are protected based on keying material derived from the TLS connection
    running on stream 1.  Prior to this, data is protected with the 0-RTT keys.
+   (TODO: Explain that crypto handshake messages are null encrypted. This is
+   some what explained in point 8?)
 
 6. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
    in-order delivery of data and are used to carry the encryption handshake and
@@ -121,10 +123,8 @@ The relative relationship of these components are pictorally represented in
    +-----+------+------------+
    |  Streams   | Congestion |
    +------------+------------+
-   |        Frames           |
-   +            +------------+
-   |            |    FEC     +--------+---------+
-   +   +--------+------------+ Public | Version |
+   |        Frames           +--------+---------+
+   +   +---------------------+ Public | Version |
    |   |     Encryption      | Reset  |  Nego.  |
    +---+---------------------+--------+---------+
    |                   Envelope                 |
@@ -204,8 +204,8 @@ However, these frames are not authenticated or confidentiality protected.
 {{pre-handshake}} covers some of the implications of this design and limitations
 on QUIC operation during this phase.
 
-Once complete, QUIC frames and forward error control (FEC) messages are
-protected using QUIC record protection, see {{record-protection}}.
+Once complete, QUIC frames are protected using QUIC record protection, see
+{{record-protection}}.
 
 
 ## Handshake and Setup Sequence
@@ -236,7 +236,7 @@ re-sent in case of loss and that they can be ordered correctly.
                             <--------
                                            1-RTT Key Available !
 
-                                             [QUIC Frames/FEC]
+                                                 [QUIC Frames]
                             <--------
    (QUIC STREAM Frame(s) <1>:)
      ((end_of_early_data <1>))
@@ -244,7 +244,7 @@ re-sent in case of loss and that they can be ordered correctly.
                             -------->
  ! 1-RTT Key Available
 
-   [QUIC Frames/FEC]        <------->        [QUIC Frames/FEC]
+   [QUIC Frames]            <------->            [QUIC Frames]
 ~~~
 {: #quic-tls-handshake title="QUIC over TLS Handshake"}
 
@@ -538,8 +538,6 @@ Issue:
 unauthenticated `ACK` frame can only be used to obtain NACK ranges.  Timestamps
 MUST NOT be included in an unprotected ACK frame, since these might be modified
 by an attacker with the intent of altering congestion control response.
-Information on FEC-revived packets is redundant, since use of FEC in this phase
-is prohibited.
 
 `ACK` frames MAY be sent a second time once record protection is enabled.  Once
 protected, timestamps can be included.
@@ -562,12 +560,6 @@ the maximum size of the TLS handshake.  This is unlikely to cause issues unless
 a server or client provides an abnormally large certificate chain.
 
 Stream 1 is exempt from the connection-level flow control window.
-
-
-### FEC Packets
-
-FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints
-MUST treat receipt of an unprotected FEC packet as a fatal error.
 
 
 ### Denial of Service with Unprotected Packets ##
