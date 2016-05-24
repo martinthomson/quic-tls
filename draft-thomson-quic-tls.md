@@ -84,33 +84,36 @@ QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
    entity that is not part of the security context) to request the termination
    of a QUIC connection.
 
-3. The forward error correction (FEC) module provides redundant entropy that
+3. Version negotiation frames are used to agree on a common version of QUIC to
+   use.
+
+4. The forward error correction (FEC) module provides redundant entropy that
    allows for frames to be repaired in event of loss.
 
-4. Framing comprises most of the QUIC protocol.  Framing provides a number of
+5. Framing comprises most of the QUIC protocol.  Framing provides a number of
    different types of frame, each with a specific purpose.  Framing supports
    frames for both congestion management and stream multiplexing.  Framing
    additionally provides a liveness testing capability (the PING frame).
 
-5. Encryption provides confidentiality and integrity protection for frames.  All
+6. Encryption provides confidentiality and integrity protection for frames.  All
    frames are protected based on keying material derived from the TLS connection
    running on stream 1.  Prior to this, data is protected with the 0-RTT keys.
 
-6. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
+7. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
    in-order delivery of data and are used to carry the encryption handshake and
    transport parameters (stream 1), HTTP header fields (stream 3), and HTTP
    requests and responses.  Frames for managing multiplexing include those for
    creating and destroying streams as well as flow control and priority frames.
 
-7. Congestion management includes packet acknowledgment and other signal
+8. Congestion management includes packet acknowledgment and other signal
    required to ensure effective use of available link capacity.
 
-8. A complete TLS connection is run on stream 1.  This includes the entire TLS
+9. A complete TLS connection is run on stream 1.  This includes the entire TLS
    record layer.  As the TLS connection reaches certain states, keying material
    is provided to the QUIC encryption layer for protecting the remainder of the
    QUIC traffic.
 
-9. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
+10. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
 
 The relative relationship of these components are pictorally represented in
 {{quic-structure}}.
@@ -123,14 +126,14 @@ The relative relationship of these components are pictorally represented in
    +------------+------------+
    |        Frames           |
    +            +------------+
-   |            |    FEC     +--------+
-   +   +--------+------------+ Public |
-   |   |     Encryption      | Reset  |
-   +---+---------------------+--------+
-   |              Envelope            |
-   +----------------------------------+
-   |                UDP               |
-   +----------------------------------+
+   |            |    FEC     +--------+---------+
+   +   +--------+------------+ Public | Version |
+   |   |     Encryption      | Reset  |  Nego.  |
+   +---+---------------------+--------+---------+
+   |                   Envelope                 |
+   +--------------------------------------------+
+   |                     UDP                    |
+   +--------------------------------------------+
 ~~~
 {: #quic-structure title="QUIC Structure"}
 
@@ -184,8 +187,8 @@ document:
    receive packets on the address it claims to have (see {{source-address}}).
 
  * A pre-shared key mode can be used for subsequent handshakes to avoid public
-   key operations.  This is the basis for 0-RTT, even if the remainder of the
-   connection is protected by a new Diffie-Hellman exchange.
+   key operations.  This is the basis for 0-RTT data, even if the remainder of
+   the connection is protected by a new Diffie-Hellman exchange.
 
 
 # TLS in Stream 1
@@ -222,19 +225,19 @@ re-sent in case of loss and that they can be ordered correctly.
      ClientHello
        + QUIC Setup Parameters
                             -------->
-   ! 0-RTT Key Available
+ ! 0-RTT Key Available
 
    (QUIC STREAM Frame(s) <1>:)
-     (({Finished}))
+     ({Finished})
    (Replayable QUIC Frames <any stream>)
                             -------->
-                                         0-RTT Key Available !
+                                           0-RTT Key Available !
 
                                       (QUIC STREAM Frame <1>:)
                                                (ServerHello)
                                       ({Handshake Messages})
                             <--------
-                                         1-RTT Key Available !
+                                           1-RTT Key Available !
 
                                              [QUIC Frames/FEC]
                             <--------
@@ -242,7 +245,7 @@ re-sent in case of loss and that they can be ordered correctly.
      ((end_of_early_data <1>))
      ({Finished})
                             -------->
-   ! 1-RTT Key Available
+ ! 1-RTT Key Available
 
    [QUIC Frames/FEC]        <------->        [QUIC Frames/FEC]
 ~~~
@@ -601,7 +604,6 @@ MUST reject empty TLS handshake records and any record that is not permitted by
 the TLS state machine.  Any TLS application data or alerts - other than a single
 end_of_early_data at the appropriate time - that is received prior to the end of
 the handshake MUST be treated as a fatal error.
-
 
 
 ## Use of 0-RTT Keys {#using-early-data}
