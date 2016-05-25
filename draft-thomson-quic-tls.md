@@ -282,6 +282,10 @@ of keys is used for protecting outbound messages, the KEY_PHASE bit in the
 public flags is toggled.  The KEY_PHASE bit on unencrypted messages is 0.
 
 The KEY_PHASE bit on the public flags is the most significant bit (0x80).
+Note: I don't think we want to make the most significant bit. In fact, I think
+we probably want this to be a bit in the second byte of public flags such
+that when we switch to full encryption, we can stop sending the extra byte
+altogether.
 
 The KEY_PHASE bit allows a recipient to detect a change in keying material
 without needing to receive the message that triggers the change.  This avoids
@@ -304,10 +308,24 @@ The following transitions are defined:
 * The server transitions to using 1-RTT keys after sending its Finished message.
   This causes the KEY_PHASE bit to be set to 0 if early data was accepted, and 1
   if the server rejected early data.
+  TODO: I think you're saying that every key transition result in a change
+  to the value of this bit. That makes sense to me. But I'm not understanding
+  the point about rejecting 0-RTT data. Is that the same thing as rejecting the
+  handshake? I'm guessing not. I think I'm not quite able to follow the
+  different values for this bit in all situations. Perhaps it would make sense
+  to show some example with 0-RTT accepted and rejected.
 
 * The client transitions to 1-RTT keys after sending its Finished message.
   Subsequent messages from the client will then have a KEY_PHASE of 0 if 0-RTT
   data was sent, and 1 otherwise.
+  TODO: Hm. This seems to suggest that after the client transitions to forward
+  secure (aka after the handshake is complete), the value of this bit will not
+  be predicatable. This scheme will definitely work, but I think it's a tiny
+  bit undesirable. I alluded to this above, but it would be great if we could
+  get away with not actually needing to send this bit on most packets. Perhaps
+  we can chat about how to do this. Perhaps we could use more bits, but arrage
+  that, say, the value of 0 (which would be implcit if not extra public flags
+  bytes are present) means the first post handshake key.
 
 * Both peers start sending messages protected by a new key immediately after
   sending a TLS KeyUpdate message. The value of the KEY_PHASE bit is changed
@@ -317,7 +335,10 @@ At each point, both keying material (see {{key-expansion}}) and the the AEAD
 function used by TLS is interchanged with the values that are currently in use
 for protecting outbound packets.  Once a change of keys has been made, packets
 with higher sequence numbers MUST use the new keying material until a newer set
-of keys (and AEAD) are used.
+of keys (and AEAD) are used. TODO: Actually this doesn't work with QUIC
+retransmissions in which retransmissions consume the next sequence number. In
+particular, consider the retransmission of a handshake packet. It must be sent
+with the correct keys so that the peer can decrypt it.
 
 Once a packet protected by a new key has been received, a recipient SHOULD
 retain the previous keys for a short period.  Retaining old keys allows the
@@ -352,6 +373,8 @@ This restriction means the creation of an exception to the requirement to always
 use new keys for sending once they are available.  A server MUST mark the
 retransmitted handshake messages with the same KEY_PHASE as the original
 messages.
+TODO: Ah, I see. Perhaps we need a note up above to call this out since that
+sentence has a pretty strong MUST in it.
 
 This prevents a server from sending KeyUpdate messages until it has received the
 client's Finished message.  Otherwise, packets protected by the updated keys
@@ -370,7 +393,7 @@ from which they are derived:
 
 0-RTT keys are those keys that are used in resumed connections prior to the
 completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed
-and so has some restructions on its use, see {{using-early-data}}.  0-RTT keys
+and so has some restrictions on its use, see {{using-early-data}}.  0-RTT keys
 are used after sending or receiving a ClientHello.
 
 1-RTT keys are used after the TLS handshake completes.  There are potentially
@@ -413,6 +436,8 @@ Server Write IV with the sequence numbers.  The 48 bits of the reconstructed
 QUIC sequence number (see {{seq-num}}) in network byte order is left-padded with
 zeros to the N_MAX parameter of the AEAD (see Section 4 of [RFC5116]).  The
 exclusive OR of the padded sequence number and the IV forms the AEAD nonce.
+TODO: Not sure if this belongs here or not, but in QUIC multipath we also add
+the path id into the nonce.
 
 The associated data, A, for the AEAD is an empty sequence.
 
@@ -530,7 +555,8 @@ Issue:
 : Is it possible to send a `STREAM` frame for stream 1 that contains no data?
   Is this detectable?  Does it comprise an attack?  For instance, could an
   attacker inject a frame that appears to contain TLS application data?
-
+  TODO: Currently we consider it an error to send a stream frame with no data
+  and no fin bit set. (And fins are prohibited on stream 1).
 
 ### ACK Frames
 
@@ -538,6 +564,12 @@ Issue:
 unauthenticated `ACK` frame can only be used to obtain NACK ranges.  Timestamps
 MUST NOT be included in an unprotected ACK frame, since these might be modified
 by an attacker with the intent of altering congestion control response.
+TODO: I don't think this is a good restriction. Before crypto is established,
+receive timestamps help set the retransmission timers to the rigth value. You're
+totally right that an attacker can mess with them, but I don't think that we
+should totally throw out the value here, if we can avoid it. That being said,
+I think that considering a packet received (which wasn't actually received)
+is actually worse than a confused RTT estimate :/
 
 `ACK` frames MAY be sent a second time once record protection is enabled.  Once
 protected, timestamps can be included.
@@ -548,7 +580,8 @@ Editor's Note:
   safe option.  If the amount of damage that an attacker can do by modifying
   timestamps is limited, then it might be OK to permit the inclusion of
   timestamps.  Note that an attacker need not be on-path to inject an ACK.
-
+  TODO: I think there's a real issue here than needs to be sorted out with
+  respect to cleartext packets being able to consume packet number
 
 ### WINDOW_UPDATE Frames
 
@@ -560,6 +593,8 @@ the maximum size of the TLS handshake.  This is unlikely to cause issues unless
 a server or client provides an abnormally large certificate chain.
 
 Stream 1 is exempt from the connection-level flow control window.
+TODO: Do we need this to be specified in this doc since it's already part
+of the main QUIC doc? No objection to keeping it here.
 
 
 ### Denial of Service with Unprotected Packets ##
@@ -591,6 +626,10 @@ ISSUE:
   service exposure to on-path attackers.  The only possible problem is in
   authenticating the initial value, so that peers can be sure that they haven't
   missed an initial message.
+  TODO: I have no objection to using a randomized starting packet number. Would
+  that be super valuable? It's not clear to me how important protecting against
+  off-path vs on-path is? We have talked about doing random packet number jumps
+  to replace per-packet entropy, so this is definitely plausible.
 
 In addition to denying endpoints messages, an attacker to generate packets that
 cause no state change in a recipient.  See {{useless}} for a discussion of these
@@ -713,6 +752,9 @@ server from being used in packet reflection attacks.
 
 A source address token is opaque and consumed only by the server.  Therefore it
 can be included in the TLS 1.3 pre-shared key identifier for 0-RTT handshakes.
+TODO: Could this be provided in TCP-based TLS 1.3 connections? If so that would
+mean that a TCP TLS 1.3 connection which was used to discover a server spoke
+QUIC could be used to enable a 0-RTT QUIC connection to that server.
 Servers that use 0-RTT are advised to provide new pre-shared key identifiers
 after every handshake to avoid linkability of connections by passive observers.
 Clients MUST use a new pre-shared key identifier for every connection that they
@@ -747,6 +789,8 @@ tune this value).  A server is less likely to generate a packet reflection
 attack if the data it sends is a small multiple of the data it receives.  A
 server SHOULD use a HelloRetryRequest if the size of the handshake messages it
 sends is likely to exceed the size of the ClientHello.
+TODO: At the QUIC layer, handshake packets are required to be padded to the
+maximium packet size to be used for the connection.
 
 
 ## Peer Denial of Service {#useless}
