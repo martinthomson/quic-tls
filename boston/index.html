@@ -276,10 +276,11 @@ li, p {
 <link href="#rfc.section.3.1" rel="Chapter" title="3.1 Handshake and Setup Sequence"/>
 <link href="#rfc.section.4" rel="Chapter" title="4 QUIC Record Protection"/>
 <link href="#rfc.section.4.1" rel="Chapter" title="4.1 Key Phases"/>
-<link href="#rfc.section.4.2" rel="Chapter" title="4.2 Retransmission of TLS Handshake Messages"/>
-<link href="#rfc.section.4.3" rel="Chapter" title="4.3 QUIC Key Expansion"/>
-<link href="#rfc.section.4.4" rel="Chapter" title="4.4 QUIC AEAD application"/>
-<link href="#rfc.section.4.5" rel="Chapter" title="4.5 Sequence Number Reconstruction"/>
+<link href="#rfc.section.4.1.1" rel="Chapter" title="4.1.1 Retransmission of TLS Handshake Messages"/>
+<link href="#rfc.section.4.1.2" rel="Chapter" title="4.1.2 Key Update"/>
+<link href="#rfc.section.4.2" rel="Chapter" title="4.2 QUIC Key Expansion"/>
+<link href="#rfc.section.4.3" rel="Chapter" title="4.3 QUIC AEAD application"/>
+<link href="#rfc.section.4.4" rel="Chapter" title="4.4 Sequence Number Reconstruction"/>
 <link href="#rfc.section.5" rel="Chapter" title="5 Pre-handshake QUIC Messages"/>
 <link href="#rfc.section.5.1" rel="Chapter" title="5.1 Unprotected Frames Prior to Handshake Completion"/>
 <link href="#rfc.section.5.1.1" rel="Chapter" title="5.1.1 STREAM Frames"/>
@@ -309,7 +310,7 @@ li, p {
 
   <meta name="dct.creator" content="Thomson, M. and R. Hamilton" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-thomson-quic-tls-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-5-24" />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-5-25" />
   <meta name="dct.abstract" content="This document describes how Transport Layer Security (TLS) can be used to secure QUIC." />
   <meta name="description" content="This document describes how Transport Layer Security (TLS) can be used to secure QUIC." />
 
@@ -333,12 +334,12 @@ li, p {
   <td class="right">R. Hamilton</td>
 </tr>
 <tr>
-  <td class="left">Expires: November 25, 2016</td>
+  <td class="left">Expires: November 26, 2016</td>
   <td class="right">Google</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">May 24, 2016</td>
+  <td class="right">May 25, 2016</td>
 </tr>
 
     	
@@ -358,7 +359,7 @@ li, p {
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on November 25, 2016.</p>
+<p>This Internet-Draft will expire on November 26, 2016.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -378,10 +379,11 @@ li, p {
 <ul><li>3.1.   <a href="#rfc.section.3.1">Handshake and Setup Sequence</a></li>
 </ul><li>4.   <a href="#rfc.section.4">QUIC Record Protection</a></li>
 <ul><li>4.1.   <a href="#rfc.section.4.1">Key Phases</a></li>
-<li>4.2.   <a href="#rfc.section.4.2">Retransmission of TLS Handshake Messages</a></li>
-<li>4.3.   <a href="#rfc.section.4.3">QUIC Key Expansion</a></li>
-<li>4.4.   <a href="#rfc.section.4.4">QUIC AEAD application</a></li>
-<li>4.5.   <a href="#rfc.section.4.5">Sequence Number Reconstruction</a></li>
+<ul><li>4.1.1.   <a href="#rfc.section.4.1.1">Retransmission of TLS Handshake Messages</a></li>
+<li>4.1.2.   <a href="#rfc.section.4.1.2">Key Update</a></li>
+</ul><li>4.2.   <a href="#rfc.section.4.2">QUIC Key Expansion</a></li>
+<li>4.3.   <a href="#rfc.section.4.3">QUIC AEAD application</a></li>
+<li>4.4.   <a href="#rfc.section.4.4">Sequence Number Reconstruction</a></li>
 </ul><li>5.   <a href="#rfc.section.5">Pre-handshake QUIC Messages</a></li>
 <ul><li>5.1.   <a href="#rfc.section.5.1">Unprotected Frames Prior to Handshake Completion</a></li>
 <ul><li>5.1.1.   <a href="#rfc.section.5.1.1">STREAM Frames</a></li>
@@ -501,33 +503,31 @@ li, p {
 <pre>
     Client                                             Server
 
-   QUIC STREAM Frame(s) &lt;1&gt;:
+@A QUIC STREAM Frame(s) &lt;1&gt;:
      ClientHello
        + QUIC Setup Parameters
                             --------&gt;
- ! 0-RTT Key Available
+                         0-RTT Key -&gt; @B
 
-   (QUIC STREAM Frame(s) &lt;1&gt;:)
-     ({Finished})
-   (Replayable QUIC Frames &lt;any stream&gt;)
+@B QUIC STREAM Frame(s) &lt;1&gt;:
+     (Finished)
+   Replayable QUIC Frames &lt;any stream&gt;
                             --------&gt;
-                                           0-RTT Key Available !
 
-                                      (QUIC STREAM Frame &lt;1&gt;:)
-                                               (ServerHello)
-                                      ({Handshake Messages})
+                                      QUIC STREAM Frame &lt;1&gt;: @B/A
+                                               ServerHello
+                                      {Handshake Messages}
                             &lt;--------
-                                           1-RTT Key Available !
+                        1-RTT Key -&gt; @C
 
-                                             [QUIC Frames/FEC]
+                                             QUIC Frames/FEC @C
                             &lt;--------
-   (QUIC STREAM Frame(s) &lt;1&gt;:)
-     ((end_of_early_data &lt;1&gt;))
-     ({Finished})
+@B QUIC STREAM Frame(s) &lt;1&gt;:
+     (end_of_early_data &lt;1&gt;)
+     {Finished}
                             --------&gt;
- ! 1-RTT Key Available
 
-   [QUIC Frames/FEC]        &lt;-------&gt;        [QUIC Frames/FEC]
+@C QUIC Frames/FEC          &lt;-------&gt;        QUIC Frames/FEC @C
 </pre>
 <p class="figure">Figure 3: QUIC over TLS Handshake</p>
 <p id="rfc.section.3.1.p.2">In <a href="#quic-tls-handshake">Figure 3</a>, symbols mean:</p>
@@ -535,11 +535,12 @@ li, p {
 
 <ul>
   <li>&#8221;&lt;&#8221; and &#8220;&gt;&#8221; enclose stream numbers.</li>
-  <li>&#8221;!&#8221; indicates when keying material is available.</li>
-  <li>&#8221;(&#8220; and &#8220;)&#8221; enclose messages that are protected with QUIC or TLS 0-RTT keys.  If 0-RTT is not possible, or not accepted, then regular frames protected by this keys are not sent by the client, and the server sends its handshake messages without protection.</li>
-  <li>&#8221;{&#8220; and &#8220;}&#8221; enclose messages that are protected by the TLS Handshake keys. Note that the client&#8217;s 0-RTT Finished message is protected by the QUIC 0-RTT key, plus the TLS 0-RTT handshake key.</li>
-  <li>&#8221;[&#8221; and &#8220;]&#8221; enclose messages that are protected by the QUIC 1-RTT keys.</li>
+  <li>&#8221;@&#8221; indicates the key phase that is currently used for protecting QUIC packets.</li>
+  <li>&#8221;(&#8220; and &#8220;)&#8221; enclose messages that are protected with TLS 0-RTT handshake or application keys.</li>
+  <li>&#8221;{&#8220; and &#8220;}&#8221; enclose messages that are protected by the TLS Handshake keys.</li>
 </ul>
+<p id="rfc.section.3.1.p.4">If 0-RTT is not possible, then the client does not send frames protected by the 0-RTT key (@B).  The only key transition on the client is from cleartext (@A) to 1-RTT protection (@C).</p>
+<p id="rfc.section.3.1.p.5">If 0-RTT data is not accepted by the server, then the server sends its handshake messages without protection (@A).  The client still transitions from @A to @B, but it can stop sending 0-RTT data and progress immediately to 1-RTT data when it receives a cleartext ServerHello.</p>
 <h1 id="rfc.section.4"><a href="#rfc.section.4">4.</a> <a href="#record-protection" id="record-protection">QUIC Record Protection</a></h1>
 <p id="rfc.section.4.p.1">QUIC provides a record protection layer that is responsible for authenticated encryption of packets.  The record protection layer uses keys provided by the TLS connection and authenticated encryption to provide confidentiality and integrity protection for the content of packets.</p>
 <p id="rfc.section.4.p.2">Different keys are used for QUIC and TLS record protection.  Having separate QUIC and TLS record protection means that TLS records can be protected by two different keys.  This redundancy is maintained for the sake of simplicity.</p>
@@ -557,16 +558,44 @@ li, p {
   <li>The client transitions to 1-RTT keys after sending its Finished message.  Subsequent messages from the client will then have a KEY_PHASE of 0 if 0-RTT data was sent, and 1 otherwise.</li>
   <li>Both peers start sending messages protected by a new key immediately after sending a TLS KeyUpdate message. The value of the KEY_PHASE bit is changed each time.</li>
 </ul>
-<p id="rfc.section.4.1.p.6">At each point, both keying material (see <a href="#key-expansion">Section 4.3</a>) and the the AEAD function used by TLS is interchanged with the values that are currently in use for protecting outbound packets.  Once a change of keys has been made, packets with higher sequence numbers MUST use the new keying material until a newer set of keys (and AEAD) are used.</p>
-<p id="rfc.section.4.1.p.7">Once a packet protected by a new key has been received, a recipient SHOULD retain the previous keys for a short period.  Retaining old keys allows the recipient to decode reordered packets around a change in keys.  Keys SHOULD be discarded when an endpoints has received all packets with sequence numbers lower than the lowest sequence number used for the new key, or when it determines that reordering of those packets is unlikely.</p>
-<p id="rfc.section.4.1.p.8">The KEY_PHASE bit does not indicate which keys are in use.  Depending on whether 0-RTT data was sent and accepted, packets protected with keys derived from the same secret might be marked with different KEY_PHASE values.</p>
-<p id="rfc.section.4.1.p.9">Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing of messages without having to receive the TLS KeyUpdate message that triggers the key update.  An endpoint MUST NOT initiate more than one key update at a time.  A new key update cannot be sent until the endpoint has received a matching KeyUpdate message from its peer; or, if the endpoint did not initiate the original key update, it has received an acknowledgment of its own KeyUpdate.  This ensures that there are at most two keys to distinguish between at any one time, for which the KEY_PHASE bit is sufficient.</p>
-<h2 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#retransmission-of-tls-handshake-messages" id="retransmission-of-tls-handshake-messages">Retransmission of TLS Handshake Messages</a></h2>
-<p id="rfc.section.4.2.p.1">TLS handshake messages need to be retransmitted with the same level of cryptographic protection that was originally used to protect them.  A client would be unable to decrypt retransmissions of a server&#8217;s handshake messages that are protected using the application data keys, since the calculation of the application data keys depend on the contents of the handshake messages.</p>
-<p id="rfc.section.4.2.p.2">This restriction means the creation of an exception to the requirement to always use new keys for sending once they are available.  A server MUST mark the retransmitted handshake messages with the same KEY_PHASE as the original messages.</p>
-<p id="rfc.section.4.2.p.3">This prevents a server from sending KeyUpdate messages until it has received the client&#8217;s Finished message.  Otherwise, packets protected by the updated keys could be confused for retransmissions of handshake messages.</p>
-<h2 id="rfc.section.4.3"><a href="#rfc.section.4.3">4.3.</a> <a href="#key-expansion" id="key-expansion">QUIC Key Expansion</a></h2>
-<p id="rfc.section.4.3.p.1">The following table shows QUIC keys, when they are generated and the TLS secret from which they are derived:</p>
+<p id="rfc.section.4.1.p.6">At each point, both keying material (see <a href="#key-expansion">Section 4.2</a>) and the AEAD function used by TLS is interchanged with the values that are currently in use for protecting outbound packets.  Once a change of keys has been made, packets with higher sequence numbers MUST use the new keying material until a newer set of keys (and AEAD) are used.  The exception to this is that retransmissions of TLS handshake packets MUST use the keys that they were originally protected with.</p>
+<p id="rfc.section.4.1.p.7">Once a packet protected by a new key has been received, a recipient SHOULD retain the previous keys for a short period.  Retaining old keys allows the recipient to decode reordered packets around a change in keys.  Keys SHOULD be discarded when an endpoints has received all packets with sequence numbers lower than the lowest sequence number used for the new key, or when it determines that reordering of those packets is unlikely.  0-RTT keys SHOULD be retained until the handshake is complete.</p>
+<p id="rfc.section.4.1.p.8">The KEY_PHASE bit does not directly indicate which keys are in use.  Depending on whether 0-RTT data was sent and accepted, packets protected with keys derived from the same secret might be marked with different KEY_PHASE values.</p>
+<h3 id="rfc.section.4.1.1"><a href="#rfc.section.4.1.1">4.1.1.</a> <a href="#retransmission-of-tls-handshake-messages" id="retransmission-of-tls-handshake-messages">Retransmission of TLS Handshake Messages</a></h3>
+<p id="rfc.section.4.1.1.p.1">TLS handshake messages need to be retransmitted with the same level of cryptographic protection that was originally used to protect them.  Newer keys cannot be used to protect QUIC packets that carry TLS messages.</p>
+<p id="rfc.section.4.1.1.p.2">A client would be unable to decrypt retransmissions of a server&#8217;s handshake messages that are protected using the 1-RTT keys, since the calculation of the application data keys depends on the contents of the handshake messages.</p>
+<p id="rfc.section.4.1.1.p.3">This restriction means the creation of an exception to the requirement to always use new keys for sending once they are available.  A server MUST mark the retransmitted handshake messages with the same KEY_PHASE as the original messages to allow a recipient to distinguish the messages.</p>
+<h3 id="rfc.section.4.1.2"><a href="#rfc.section.4.1.2">4.1.2.</a> <a href="#key-update" id="key-update">Key Update</a></h3>
+<p id="rfc.section.4.1.2.p.1">Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing of messages without having to receive the TLS KeyUpdate message that triggers the key update.  This allows endpoints to start using updated keys immediately without the concern that a lost KeyUpdate will cause their messages to be indecipherable to their peer..</p>
+<p id="rfc.section.4.1.2.p.2">An endpoint MUST NOT initiate more than one key update at a time.  A new key update cannot be sent until the endpoint has received a matching KeyUpdate message from its peer; or, if the endpoint did not initiate the original key update, it has received an acknowledgment of its own KeyUpdate.</p>
+<p id="rfc.section.4.1.2.p.3">This ensures that there are at most two keys to distinguish between at any one time, for which the KEY_PHASE bit is sufficient.</p>
+<div id="rfc.figure.4"/>
+<div id="ex-key-update"/>
+<pre>
+   Initiating Peer                    Responding Peer
+
+@M KeyUpdate
+                    New Keys -&gt; @N
+@N QUIC Frames
+                      --------&gt;
+                                            KeyUpdate @N
+                      &lt;--------
+  -- Initiating Peer can initiate another KeyUpdate --
+ @N Acknowledgment
+                      --------&gt;
+  -- Responding Peer can initiate another KeyUpdate --
+</pre>
+<p class="figure">Figure 4: Key Update</p>
+<p id="rfc.section.4.1.2.p.4">As shown in <a href="#quic-tls-handshake">Figure 3</a> and <a href="#ex-key-update">Figure 4</a>, there is never a situation where there are more than two different sets of keying material that might be received by a peer.</p>
+<p id="rfc.section.4.1.2.p.5">A server cannot initiate a key update until it has received the client&#8217;s Finished message.  Otherwise, packets protected by the updated keys could be confused for retransmissions of handshake messages.  A client cannot initiate a key update until it has received an acknowledgment that its Finished message has been received.</p>
+<p/>
+
+<dl>
+  <dt>Note:</dt>
+  <dd style="margin-left: 8">This models the key changes in the handshake as a key update initiated by the server, with the Finished message in the place of KeyUpdate.</dd>
+</dl>
+<h2 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#key-expansion" id="key-expansion">QUIC Key Expansion</a></h2>
+<p id="rfc.section.4.2.p.1">The following table shows QUIC keys, when they are generated and the TLS secret from which they are derived:</p>
 <table cellpadding="3" cellspacing="0" class="tt full center">
   <thead>
     <tr>
@@ -588,35 +617,36 @@ li, p {
     </tr>
   </tbody>
 </table>
-<p id="rfc.section.4.3.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
-<p id="rfc.section.4.3.p.3">1-RTT keys are used after the TLS handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
-<p id="rfc.section.4.3.p.4">The complete key expansion uses the same process for key expansion as defined in Section 7.3 of <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  For example, the Client Write Key for the data sent immediately after sending the TLS Finished message is:</p>
+<p id="rfc.section.4.2.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
+<p id="rfc.section.4.2.p.3">1-RTT keys are used after the TLS handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
+<p id="rfc.section.4.2.p.4">The complete key expansion uses the same process for key expansion as defined in Section 7.3 of <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  For example, the Client Write Key for the data sent immediately after sending the TLS Finished message is:</p>
 <pre>
    label = "QUIC 1-RTT key expansion, client write key"
    client_write = HKDF-Expand-Label(traffic_secret_0, label,
                                     "", key_length)
 </pre>
-<p id="rfc.section.4.3.p.5">The QUIC record protection initially starts without keying material.  When the TLS state machine produces the corresponding secret, new keys are generated from the TLS connection and used to protect the QUIC record protection.</p>
-<p id="rfc.section.4.3.p.6">The Authentication Encryption with Associated Data (AEAD) <a href="#RFC5116">[RFC5116]</a> function used is the one used by the TLS connection.  For example, if TLS is using the TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.</p>
-<h2 id="rfc.section.4.4"><a href="#rfc.section.4.4">4.4.</a> <a href="#quic-aead-application" id="quic-aead-application">QUIC AEAD application</a></h2>
-<p id="rfc.section.4.4.p.1">Regular QUIC packets are protected by an AEAD <a href="#RFC5116">[RFC5116]</a>.  Version negotiation and public reset packets are not protected.</p>
-<p id="rfc.section.4.4.p.2">Once TLS has provided a key, the contents of regular QUIC packets immediately after any TLS messages have been sent are protected by the AEAD selected by TLS.</p>
-<p id="rfc.section.4.4.p.3">The key, K, for the AEAD is either the Client Write Key or the Server Write Key, derived as defined in <a href="#key-expansion">Section 4.3</a>.</p>
-<p id="rfc.section.4.4.p.4">The nonce, N, for the AEAD is formed by combining either the Client Write IV or Server Write IV with the sequence numbers.  The 48 bits of the reconstructed QUIC sequence number (see <a href="#seq-num">Section 4.5</a>) in network byte order is left-padded with zeros to the N_MAX parameter of the AEAD (see Section 4 of <a href="#RFC5116">[RFC5116]</a>).  The exclusive OR of the padded sequence number and the IV forms the AEAD nonce.</p>
-<p id="rfc.section.4.4.p.5">The associated data, A, for the AEAD is an empty sequence.</p>
-<p id="rfc.section.4.4.p.6">The input plaintext, P, for the AEAD is the contents of the QUIC frame following the packet number, as described in <a href="#I-D.tsvwg-quic-protocol">[I-D.tsvwg-quic-protocol]</a>.</p>
-<p id="rfc.section.4.4.p.7">The output ciphertext, C, of the AEAD is transmitted in place of P.</p>
-<p id="rfc.section.4.4.p.8">Prior to TLS providing keys, no record protection is performed and the plaintext, P, is transmitted unmodified.</p>
+<p id="rfc.section.4.2.p.5">This results in a label input to HKDF that includes a two-octet length field, the string &#8220;TLS 1.3, QUIC 1-RTT key expansion, client write key&#8221; and a zero octet.</p>
+<p id="rfc.section.4.2.p.6">The QUIC record protection initially starts without keying material.  When the TLS state machine produces the corresponding secret, new keys are generated from the TLS connection and used to protect the QUIC record protection.</p>
+<p id="rfc.section.4.2.p.7">The Authentication Encryption with Associated Data (AEAD) <a href="#RFC5116">[RFC5116]</a> function used is the same one that is negotiated for use with the TLS connection.  For example, if TLS is using the TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.</p>
+<h2 id="rfc.section.4.3"><a href="#rfc.section.4.3">4.3.</a> <a href="#quic-aead-application" id="quic-aead-application">QUIC AEAD application</a></h2>
+<p id="rfc.section.4.3.p.1">Regular QUIC packets are protected by an AEAD <a href="#RFC5116">[RFC5116]</a>.  Version negotiation and public reset packets are not protected.</p>
+<p id="rfc.section.4.3.p.2">Once TLS has provided a key, the contents of regular QUIC packets immediately after any TLS messages have been sent are protected by the AEAD selected by TLS.</p>
+<p id="rfc.section.4.3.p.3">The key, K, for the AEAD is either the Client Write Key or the Server Write Key, derived as defined in <a href="#key-expansion">Section 4.2</a>.</p>
+<p id="rfc.section.4.3.p.4">The nonce, N, for the AEAD is formed by combining either the Client Write IV or Server Write IV with the sequence numbers.  The 48 bits of the reconstructed QUIC sequence number (see <a href="#seq-num">Section 4.4</a>) in network byte order is left-padded with zeros to the N_MAX parameter of the AEAD (see Section 4 of <a href="#RFC5116">[RFC5116]</a>).  The exclusive OR of the padded sequence number and the IV forms the AEAD nonce.</p>
+<p id="rfc.section.4.3.p.5">The associated data, A, for the AEAD is an empty sequence.</p>
+<p id="rfc.section.4.3.p.6">The input plaintext, P, for the AEAD is the contents of the QUIC frame following the packet number, as described in <a href="#I-D.tsvwg-quic-protocol">[I-D.tsvwg-quic-protocol]</a>.</p>
+<p id="rfc.section.4.3.p.7">The output ciphertext, C, of the AEAD is transmitted in place of P.</p>
+<p id="rfc.section.4.3.p.8">Prior to TLS providing keys, no record protection is performed and the plaintext, P, is transmitted unmodified.</p>
 <p/>
 
 <dl>
   <dt>Note:</dt>
   <dd style="margin-left: 8">QUIC defined a null-encryption that had an additional, hash-based checksum for cleartext packets.  This might be added here, but it is more complex.</dd>
 </dl>
-<h2 id="rfc.section.4.5"><a href="#rfc.section.4.5">4.5.</a> <a href="#seq-num" id="seq-num">Sequence Number Reconstruction</a></h2>
-<p id="rfc.section.4.5.p.1">Each peer maintains a 48-bit sequence number that is incremented with every packet that is sent, including retransmissions.  The least significant 8-, 16-, 32-, or 48-bits of this number is encoded in the QUIC sequence number field in every packet.</p>
-<p id="rfc.section.4.5.p.2">A receiver maintains the same values, but recovers values based on the packets it receives.  This is based on the sequence number of packets that it has received.  A simple scheme predicts the receive sequence number of an incoming packet by incrementing the sequence number of the most recent packet to be successfully decrypted by one and expecting the sequence number to be within a range centered on that value.</p>
-<p id="rfc.section.4.5.p.3">A more sophisticated algorithm can almost double the search space by checking backwards from the most recent sequence for a received (or abandoned) packet.  If a packet was received, then the packet contains a sequence number that is greater than the most recent sequence number.  If no such packet was found, the number is assumed to be in the smaller window centered on the next sequence number, as in the simpler scheme.</p>
+<h2 id="rfc.section.4.4"><a href="#rfc.section.4.4">4.4.</a> <a href="#seq-num" id="seq-num">Sequence Number Reconstruction</a></h2>
+<p id="rfc.section.4.4.p.1">Each peer maintains a 48-bit sequence number that is incremented with every packet that is sent, including retransmissions.  The least significant 8-, 16-, 32-, or 48-bits of this number is encoded in the QUIC sequence number field in every packet.</p>
+<p id="rfc.section.4.4.p.2">A receiver maintains the same values, but recovers values based on the packets it receives.  This is based on the sequence number of packets that it has received.  A simple scheme predicts the receive sequence number of an incoming packet by incrementing the sequence number of the most recent packet to be successfully decrypted by one and expecting the sequence number to be within a range centered on that value.</p>
+<p id="rfc.section.4.4.p.3">A more sophisticated algorithm can almost double the search space by checking backwards from the most recent sequence for a received (or abandoned) packet.  If a packet was received, then the packet contains a sequence number that is greater than the most recent sequence number.  If no such packet was found, the number is assumed to be in the smaller window centered on the next sequence number, as in the simpler scheme.</p>
 <p/>
 
 <dl>
@@ -686,11 +716,11 @@ li, p {
 <p id="rfc.section.5.1.5.p.6">To avoid receiving TLS packets that contain no useful data, a TLS implementation MUST reject empty TLS handshake records and any record that is not permitted by the TLS state machine.  Any TLS application data or alerts - other than a single end_of_early_data at the appropriate time - that is received prior to the end of the handshake MUST be treated as a fatal error.</p>
 <h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#using-early-data" id="using-early-data">Use of 0-RTT Keys</a></h2>
 <p id="rfc.section.5.2.p.1">If 0-RTT keys are available, the lack of replay protection means that restrictions on their use are necessary to avoid replay attacks on the protocol.</p>
-<p id="rfc.section.5.2.p.2">A client MUST only use 0-RTT keys for the protection of data that is idempotent.  A client MAY wish to apply additional restrictions on what data it sends prior to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as equivalent to 1-RTT keys.</p>
-<p id="rfc.section.5.2.p.3">A client that has successfully used 0-RTT keys can send 0-RTT data until it receives all of the server&#8217;s handshake messages.  A client SHOULD stop sending 0-RTT data if it receives an indication that 0-RTT data has been rejected.  In addition to a ServerHello without an early_data extension, an unprotected handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has been rejected.</p>
-<p id="rfc.section.5.2.p.4">A client SHOULD therefore send its end_of_early_data alert after it has either received all of the server&#8217;s handshake messages, or it receives an unprotected handshake message.  Alternatively phrased, a client is encouraged to use 0-RTT keys until 1-RTT keys become available.  This prevents stalling of the connection and allows the client to send continuously.</p>
-<p id="rfc.section.5.2.p.5">A server MUST NOT use 0-RTT keys for anything other than TLS handshake messages.  Servers therefore treat packets protected with 0-RTT keys as equivalent to unprotected packets in determining what can be sent.  A server protects handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A server MUST still include the early_data extension in its handshake.</p>
-<p id="rfc.section.5.2.p.6">This prevents a server from responding to a request using 0-RTT.  This ensures that all application data from the server enjoy forward secrecy protection.  However, this results in head-of-line blocking at the client because server responses cannot be decrypted until all the server&#8217;s handshake messages are received.</p>
+<p id="rfc.section.5.2.p.2">A client MUST only use 0-RTT keys to protect data that is idempotent.  A client MAY wish to apply additional restrictions on what data it sends prior to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as equivalent to 1-RTT keys.</p>
+<p id="rfc.section.5.2.p.3">A client that receives an indication that its 0-RTT data has been accepted by a server can send 0-RTT data until it receives all of the server&#8217;s handshake messages.  A client SHOULD stop sending 0-RTT data if it receives an indication that 0-RTT data has been rejected.  In addition to a ServerHello without an early_data extension, an unprotected handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has been rejected.</p>
+<p id="rfc.section.5.2.p.4">A client SHOULD send its end_of_early_data alert only after it has received all of the server&#8217;s handshake messages.  Alternatively phrased, a client is encouraged to use 0-RTT keys until 1-RTT keys become available.  This prevents stalling of the connection and allows the client to send continuously.</p>
+<p id="rfc.section.5.2.p.5">A server MUST NOT use 0-RTT keys to protect anything other than TLS handshake messages.  Servers therefore treat packets protected with 0-RTT keys as equivalent to unprotected packets in determining what is permissible to send.  A server protects handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A server MUST still include the early_data extension in its ServerHello message.</p>
+<p id="rfc.section.5.2.p.6">This restriction prevents a server from responding to a request using frames protected by the 0-RTT keys.  This ensures that all application data from the server are always protected with keys that have forward secrecy.  However, this results in head-of-line blocking at the client because server responses cannot be decrypted until all the server&#8217;s handshake messages are received by the client.</p>
 <h2 id="rfc.section.5.3"><a href="#rfc.section.5.3">5.3.</a> <a href="#pre-handshake-protected" id="pre-handshake-protected">Protected Frames Prior to Handshake Completion</a></h2>
 <p id="rfc.section.5.3.p.1">Due to reordering and loss, protected packets might be received by an endpoint before the final handshake messages are received.  If these can be decrypted successfully, such packets MAY be stored and used once the handshake is complete.</p>
 <p id="rfc.section.5.3.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
