@@ -747,10 +747,18 @@ protection for the QUIC negotiation.  This does not prevent version downgrade
 during the handshake, though it means that such a downgrade causes a handshake
 failure.
 
-TBD:
+Protocols that use the QUIC transport MUST use Application Layer Protocol
+Negotiation (ALPN) [RFC7301].  The ALPN identifier for the protocol MUST be
+specific to the QUIC version that it operates over.  When constructing a
+ClientHello, clients MUST include a list of all the ALPN identifiers that they
+support, regardless of whether the QUIC version that they have currently
+selected supports that protocol.
 
-: Determine whether we are using ALPN or a new quic_version extension and
-  describe that fully.
+Servers SHOULD select an application protocol based solely on the information in
+the ClientHello, not using the QUIC version that the client has selected.  If
+the protocol that is selected is not supported with the QUIC version that is in
+use, the server MUST either send a QUIC version negotiation packet if this is
+possible, or fail the connection otherwise.
 
 
 ## QUIC Extension {#quic_parameters}
