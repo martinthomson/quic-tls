@@ -5,7 +5,7 @@
 <head profile="http://www.w3.org/2006/03/hcard http://dublincore.org/documents/2008/08/04/dc-html/">
   <meta http-equiv="Content-Type" content="text/html; charset=us-ascii" />
 
-  <title>Porting QUIC to Transport Layer Security (TLS)</title>
+  <title>Using Transport Layer Security (TLS) to Secure QUIC</title>
 
   <style type="text/css">/*<![CDATA[*/
 @viewport {
@@ -272,29 +272,35 @@ li, p {
 <link href="#rfc.section.1.1" rel="Chapter" title="1.1 Notational Conventions"/>
 <link href="#rfc.section.2" rel="Chapter" title="2 Protocol Overview"/>
 <link href="#rfc.section.2.1" rel="Chapter" title="2.1 Handshake Overview"/>
-<link href="#rfc.section.3" rel="Chapter" title="3 QUIC over TLS Structure"/>
-<link href="#rfc.section.4" rel="Chapter" title="4 Mapping of QUIC to QUIC over TLS"/>
-<link href="#rfc.section.4.1" rel="Chapter" title="4.1 Protocol and Version Negotiation"/>
-<link href="#rfc.section.4.2" rel="Chapter" title="4.2 Source Address Validation"/>
-<link href="#rfc.section.5" rel="Chapter" title="5 Record Protection"/>
-<link href="#rfc.section.5.1" rel="Chapter" title="5.1 TLS Handshake Encryption"/>
-<link href="#rfc.section.5.2" rel="Chapter" title="5.2 Key Update"/>
-<link href="#rfc.section.5.3" rel="Chapter" title="5.3 Sequence Number Reconstruction"/>
-<link href="#rfc.section.5.4" rel="Chapter" title="5.4 Alternative Design: Exporters"/>
-<link href="#rfc.section.6" rel="Chapter" title="6 Pre-handshake QUIC Messages"/>
-<link href="#rfc.section.6.1" rel="Chapter" title="6.1 QUIC Extension"/>
-<link href="#rfc.section.6.2" rel="Chapter" title="6.2 Unprotected Frames Prior to Handshake Completion"/>
-<link href="#rfc.section.6.2.1" rel="Chapter" title="6.2.1 STREAM Frames"/>
-<link href="#rfc.section.6.2.2" rel="Chapter" title="6.2.2 ACK Frames"/>
-<link href="#rfc.section.6.2.3" rel="Chapter" title="6.2.3 WINDOW_UPDATE Frames"/>
-<link href="#rfc.section.6.2.4" rel="Chapter" title="6.2.4 FEC Packets"/>
-<link href="#rfc.section.6.3" rel="Chapter" title="6.3 Protected Frames Prior to Handshake Completion"/>
-<link href="#rfc.section.7" rel="Chapter" title="7 Connection ID"/>
-<link href="#rfc.section.8" rel="Chapter" title="8 Security Considerations"/>
-<link href="#rfc.section.9" rel="Chapter" title="9 IANA Considerations"/>
-<link href="#rfc.references" rel="Chapter" title="10 References"/>
-<link href="#rfc.references.1" rel="Chapter" title="10.1 Normative References"/>
-<link href="#rfc.references.2" rel="Chapter" title="10.2 Informative References"/>
+<link href="#rfc.section.3" rel="Chapter" title="3 TLS in Stream 1"/>
+<link href="#rfc.section.3.1" rel="Chapter" title="3.1 Handshake and Setup Sequence"/>
+<link href="#rfc.section.4" rel="Chapter" title="4 QUIC Record Protection"/>
+<link href="#rfc.section.4.1" rel="Chapter" title="4.1 Key Phases"/>
+<link href="#rfc.section.4.1.1" rel="Chapter" title="4.1.1 Retransmission of TLS Handshake Messages"/>
+<link href="#rfc.section.4.1.2" rel="Chapter" title="4.1.2 Key Update"/>
+<link href="#rfc.section.4.2" rel="Chapter" title="4.2 QUIC Key Expansion"/>
+<link href="#rfc.section.4.3" rel="Chapter" title="4.3 QUIC AEAD application"/>
+<link href="#rfc.section.4.4" rel="Chapter" title="4.4 Sequence Number Reconstruction"/>
+<link href="#rfc.section.5" rel="Chapter" title="5 Pre-handshake QUIC Messages"/>
+<link href="#rfc.section.5.1" rel="Chapter" title="5.1 Unprotected Frames Prior to Handshake Completion"/>
+<link href="#rfc.section.5.1.1" rel="Chapter" title="5.1.1 STREAM Frames"/>
+<link href="#rfc.section.5.1.2" rel="Chapter" title="5.1.2 ACK Frames"/>
+<link href="#rfc.section.5.1.3" rel="Chapter" title="5.1.3 WINDOW_UPDATE Frames"/>
+<link href="#rfc.section.5.1.4" rel="Chapter" title="5.1.4 FEC Packets"/>
+<link href="#rfc.section.5.1.5" rel="Chapter" title="5.1.5 Denial of Service with Unprotected Packets"/>
+<link href="#rfc.section.5.2" rel="Chapter" title="5.2 Use of 0-RTT Keys"/>
+<link href="#rfc.section.5.3" rel="Chapter" title="5.3 Protected Frames Prior to Handshake Completion"/>
+<link href="#rfc.section.6" rel="Chapter" title="6 QUIC-Specific Additions to the TLS Handshake"/>
+<link href="#rfc.section.6.1" rel="Chapter" title="6.1 Protocol and Version Negotiation"/>
+<link href="#rfc.section.6.2" rel="Chapter" title="6.2 QUIC Extension"/>
+<link href="#rfc.section.6.3" rel="Chapter" title="6.3 Source Address Validation"/>
+<link href="#rfc.section.7" rel="Chapter" title="7 Security Considerations"/>
+<link href="#rfc.section.7.1" rel="Chapter" title="7.1 Packet Reflection Attack Mitigation"/>
+<link href="#rfc.section.7.2" rel="Chapter" title="7.2 Peer Denial of Service"/>
+<link href="#rfc.section.8" rel="Chapter" title="8 IANA Considerations"/>
+<link href="#rfc.references" rel="Chapter" title="9 References"/>
+<link href="#rfc.references.1" rel="Chapter" title="9.1 Normative References"/>
+<link href="#rfc.references.2" rel="Chapter" title="9.2 Informative References"/>
 <link href="#rfc.appendix.A" rel="Chapter" title="A Acknowledgments"/>
 <link href="#rfc.authors" rel="Chapter"/>
 
@@ -304,9 +310,9 @@ li, p {
 
   <meta name="dct.creator" content="Thomson, M. and R. Hamilton" />
   <meta name="dct.identifier" content="urn:ietf:id:draft-thomson-quic-tls-latest" />
-  <meta name="dct.issued" scheme="ISO8601" content="2016-4-27" />
-  <meta name="dct.abstract" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
-  <meta name="description" content="The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS." />
+  <meta name="dct.issued" scheme="ISO8601" content="2016-5-27" />
+  <meta name="dct.abstract" content="This document describes how Transport Layer Security (TLS) can be used to secure QUIC." />
+  <meta name="description" content="This document describes how Transport Layer Security (TLS) can be used to secure QUIC." />
 
 </head>
 
@@ -328,32 +334,32 @@ li, p {
   <td class="right">R. Hamilton</td>
 </tr>
 <tr>
-  <td class="left">Expires: October 29, 2016</td>
+  <td class="left">Expires: November 28, 2016</td>
   <td class="right">Google</td>
 </tr>
 <tr>
   <td class="left"></td>
-  <td class="right">April 27, 2016</td>
+  <td class="right">May 27, 2016</td>
 </tr>
 
     	
     </tbody>
   </table>
 
-  <p class="title">Porting QUIC to Transport Layer Security (TLS)<br />
+  <p class="title">Using Transport Layer Security (TLS) to Secure QUIC<br />
   <span class="filename">draft-thomson-quic-tls-latest</span></p>
   
   <h1 id="rfc.abstract">
   <a href="#rfc.abstract">Abstract</a>
 </h1>
-<p>The QUIC experiment defines a custom security protocol.  This was necessary to gain handshake latency improvements.  This document describes how that security protocol might be replaced with TLS.</p>
+<p>This document describes how Transport Layer Security (TLS) can be used to secure QUIC.</p>
 <h1 id="rfc.status">
   <a href="#rfc.status">Status of This Memo</a>
 </h1>
 <p>This Internet-Draft is submitted in full conformance with the provisions of BCP 78 and BCP 79.</p>
 <p>Internet-Drafts are working documents of the Internet Engineering Task Force (IETF).  Note that other groups may also distribute working documents as Internet-Drafts.  The list of current Internet-Drafts is at http://datatracker.ietf.org/drafts/current/.</p>
 <p>Internet-Drafts are draft documents valid for a maximum of six months and may be updated, replaced, or obsoleted by other documents at any time.  It is inappropriate to use Internet-Drafts as reference material or to cite them other than as "work in progress."</p>
-<p>This Internet-Draft will expire on October 29, 2016.</p>
+<p>This Internet-Draft will expire on November 28, 2016.</p>
 <h1 id="rfc.copyrightnotice">
   <a href="#rfc.copyrightnotice">Copyright Notice</a>
 </h1>
@@ -369,29 +375,35 @@ li, p {
 <ul><li>1.1.   <a href="#rfc.section.1.1">Notational Conventions</a></li>
 </ul><li>2.   <a href="#rfc.section.2">Protocol Overview</a></li>
 <ul><li>2.1.   <a href="#rfc.section.2.1">Handshake Overview</a></li>
-</ul><li>3.   <a href="#rfc.section.3">QUIC over TLS Structure</a></li>
-<li>4.   <a href="#rfc.section.4">Mapping of QUIC to QUIC over TLS</a></li>
-<ul><li>4.1.   <a href="#rfc.section.4.1">Protocol and Version Negotiation</a></li>
-<li>4.2.   <a href="#rfc.section.4.2">Source Address Validation</a></li>
-</ul><li>5.   <a href="#rfc.section.5">Record Protection</a></li>
-<ul><li>5.1.   <a href="#rfc.section.5.1">TLS Handshake Encryption</a></li>
-<li>5.2.   <a href="#rfc.section.5.2">Key Update</a></li>
-<li>5.3.   <a href="#rfc.section.5.3">Sequence Number Reconstruction</a></li>
-<li>5.4.   <a href="#rfc.section.5.4">Alternative Design: Exporters</a></li>
-</ul><li>6.   <a href="#rfc.section.6">Pre-handshake QUIC Messages</a></li>
-<ul><li>6.1.   <a href="#rfc.section.6.1">QUIC Extension</a></li>
-<li>6.2.   <a href="#rfc.section.6.2">Unprotected Frames Prior to Handshake Completion</a></li>
-<ul><li>6.2.1.   <a href="#rfc.section.6.2.1">STREAM Frames</a></li>
-<li>6.2.2.   <a href="#rfc.section.6.2.2">ACK Frames</a></li>
-<li>6.2.3.   <a href="#rfc.section.6.2.3">WINDOW_UPDATE Frames</a></li>
-<li>6.2.4.   <a href="#rfc.section.6.2.4">FEC Packets</a></li>
-</ul><li>6.3.   <a href="#rfc.section.6.3">Protected Frames Prior to Handshake Completion</a></li>
-</ul><li>7.   <a href="#rfc.section.7">Connection ID</a></li>
-<li>8.   <a href="#rfc.section.8">Security Considerations</a></li>
-<li>9.   <a href="#rfc.section.9">IANA Considerations</a></li>
-<li>10.   <a href="#rfc.references">References</a></li>
-<ul><li>10.1.   <a href="#rfc.references.1">Normative References</a></li>
-<li>10.2.   <a href="#rfc.references.2">Informative References</a></li>
+</ul><li>3.   <a href="#rfc.section.3">TLS in Stream 1</a></li>
+<ul><li>3.1.   <a href="#rfc.section.3.1">Handshake and Setup Sequence</a></li>
+</ul><li>4.   <a href="#rfc.section.4">QUIC Record Protection</a></li>
+<ul><li>4.1.   <a href="#rfc.section.4.1">Key Phases</a></li>
+<ul><li>4.1.1.   <a href="#rfc.section.4.1.1">Retransmission of TLS Handshake Messages</a></li>
+<li>4.1.2.   <a href="#rfc.section.4.1.2">Key Update</a></li>
+</ul><li>4.2.   <a href="#rfc.section.4.2">QUIC Key Expansion</a></li>
+<li>4.3.   <a href="#rfc.section.4.3">QUIC AEAD application</a></li>
+<li>4.4.   <a href="#rfc.section.4.4">Sequence Number Reconstruction</a></li>
+</ul><li>5.   <a href="#rfc.section.5">Pre-handshake QUIC Messages</a></li>
+<ul><li>5.1.   <a href="#rfc.section.5.1">Unprotected Frames Prior to Handshake Completion</a></li>
+<ul><li>5.1.1.   <a href="#rfc.section.5.1.1">STREAM Frames</a></li>
+<li>5.1.2.   <a href="#rfc.section.5.1.2">ACK Frames</a></li>
+<li>5.1.3.   <a href="#rfc.section.5.1.3">WINDOW_UPDATE Frames</a></li>
+<li>5.1.4.   <a href="#rfc.section.5.1.4">FEC Packets</a></li>
+<li>5.1.5.   <a href="#rfc.section.5.1.5">Denial of Service with Unprotected Packets</a></li>
+</ul><li>5.2.   <a href="#rfc.section.5.2">Use of 0-RTT Keys</a></li>
+<li>5.3.   <a href="#rfc.section.5.3">Protected Frames Prior to Handshake Completion</a></li>
+</ul><li>6.   <a href="#rfc.section.6">QUIC-Specific Additions to the TLS Handshake</a></li>
+<ul><li>6.1.   <a href="#rfc.section.6.1">Protocol and Version Negotiation</a></li>
+<li>6.2.   <a href="#rfc.section.6.2">QUIC Extension</a></li>
+<li>6.3.   <a href="#rfc.section.6.3">Source Address Validation</a></li>
+</ul><li>7.   <a href="#rfc.section.7">Security Considerations</a></li>
+<ul><li>7.1.   <a href="#rfc.section.7.1">Packet Reflection Attack Mitigation</a></li>
+<li>7.2.   <a href="#rfc.section.7.2">Peer Denial of Service</a></li>
+</ul><li>8.   <a href="#rfc.section.8">IANA Considerations</a></li>
+<li>9.   <a href="#rfc.references">References</a></li>
+<ul><li>9.1.   <a href="#rfc.references.1">Normative References</a></li>
+<li>9.2.   <a href="#rfc.references.2">Informative References</a></li>
 </ul><li>Appendix A.   <a href="#rfc.appendix.A">Acknowledgments</a></li>
 <li><a href="#rfc.authors">Authors' Addresses</a></li>
 
@@ -400,16 +412,8 @@ li, p {
 
   <h1 id="rfc.section.1"><a href="#rfc.section.1">1.</a> <a href="#introduction" id="introduction">Introduction</a></h1>
 <p id="rfc.section.1.p.1">QUIC <a href="#I-D.tsvwg-quic-protocol">[I-D.tsvwg-quic-protocol]</a> provides a multiplexed transport for HTTP <a href="#RFC7230">[RFC7230]</a> semantics that provides several key advantages over HTTP/1.1 <a href="#RFC7230">[RFC7230]</a> or HTTP/2 <a href="#RFC7540">[RFC7540]</a> over TCP <a href="#RFC0793">[RFC0793]</a>.</p>
-<p id="rfc.section.1.p.2">The custom security protocol designed for QUIC provides critical latency improvements for connection establishment.  Absent packet loss, most new connections can be established with a single round trip; on subsequent connections between the same client and server, the client can often send application data immediately, that is, zero round trip setup.  TLS 1.3 uses a similar design and aims to provide the same set of improvements.</p>
-<p id="rfc.section.1.p.3">This document describes how the standardized TLS 1.3 might serve as a security layer for QUIC.  The same design could work for TLS 1.2, though few of the benefits QUIC provides would be realized due to the handshake latency in versions of TLS prior to 1.3.</p>
-<p/>
-
-<dl>
-  <dt>Alternative Designs:</dt>
-  <dd style="margin-left: 8">There are other designs that are possible; and many of these alternative designs are likely to be equally good.  The point of this document is to articulate a coherent single design.  Notes like this throughout the document are used describe points where alternatives were considered.</dd>
-  <dt>Note:</dt>
-  <dd style="margin-left: 8">This is a rough draft.  Many details have not been ironed out.  Ryan is not responsible for any errors or omissions.</dd>
-</dl>
+<p id="rfc.section.1.p.2">This document describes how QUIC can be secured using Transport Layer Security (TLS) version 1.3 <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  TLS 1.3 provides critical latency improvements for connection establishment over previous versions.  Absent packet loss, most new connections can be established and secured within a single round trip; on subsequent connections between the same client and server, the client can often send application data immediately, that is, zero round trip setup.</p>
+<p id="rfc.section.1.p.3">This document describes how the standardized TLS 1.3 can act a security component of QUIC.  The same design could work for TLS 1.2, though few of the benefits QUIC provides would be realized due to the handshake latency in versions of TLS prior to 1.3.</p>
 <h2 id="rfc.section.1.1"><a href="#rfc.section.1.1">1.1.</a> <a href="#notational-conventions" id="notational-conventions">Notational Conventions</a></h2>
 <p id="rfc.section.1.1.p.1">The words &#8220;MUST&#8221;, &#8220;MUST NOT&#8221;, &#8220;SHOULD&#8221;, and &#8220;MAY&#8221; are used in this document.  It&#8217;s not shouting; when they are capitalized, they have the special meaning defined in <a href="#RFC2119">[RFC2119]</a>.</p>
 <h1 id="rfc.section.2"><a href="#rfc.section.2">2.</a> <a href="#protocol-overview" id="protocol-overview">Protocol Overview</a></h1>
@@ -419,37 +423,37 @@ li, p {
 <ol>
   <li>The basic frame envelope describes the common packet layout.  This layer includes connection identification, version negotiation, and includes the indicators that allow the framing, public reset, and FEC modules to be identified.</li>
   <li>The public reset is an unprotected frame that allows an intermediary (an entity that is not part of the security context) to request the termination of a QUIC connection.</li>
+  <li>Version negotiation frames are used to agree on a common version of QUIC to use.</li>
   <li>The forward error correction (FEC) module provides redundant entropy that allows for frames to be repaired in event of loss.</li>
   <li>Framing comprises most of the QUIC protocol.  Framing provides a number of different types of frame, each with a specific purpose.  Framing supports frames for both congestion management and stream multiplexing.  Framing additionally provides a liveness testing capability (the PING frame).</li>
-  <li>Crypto provides confidentiality and integrity protection for frames.  All frames are protected after the handshake completes on stream 1.  Prior to this, data is protected with the 0-RTT keys.</li>
+  <li>Encryption provides confidentiality and integrity protection for frames.  All frames are protected based on keying material derived from the TLS connection running on stream 1.  Prior to this, data is protected with the 0-RTT keys.</li>
   <li>Multiplexed streams are the primary payload of QUIC.  These provide reliable, in-order delivery of data and are used to carry the encryption handshake and transport parameters (stream 1), HTTP header fields (stream 3), and HTTP requests and responses.  Frames for managing multiplexing include those for creating and destroying streams as well as flow control and priority frames.</li>
   <li>Congestion management includes packet acknowledgment and other signal required to ensure effective use of available link capacity.</li>
+  <li>A complete TLS connection is run on stream 1.  This includes the entire TLS record layer.  As the TLS connection reaches certain states, keying material is provided to the QUIC encryption layer for protecting the remainder of the QUIC traffic.</li>
   <li>HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.</li>
 </ol>
 <p id="rfc.section.2.p.3">The relative relationship of these components are pictorally represented in <a href="#quic-structure">Figure 1</a>.</p>
 <div id="rfc.figure.1"/>
 <div id="quic-structure"/>
 <pre>
-   +----+------+
-   | HS | HTTP |
-   +----+------+------------+
-   |  Streams  | Congestion |
-   +-----------+------------+
-   |        Frames          |
-   +           +------------+
-   |           |    FEC     +--------+
-   +  +--------+------------+ Public |
-   |  |     Crypto          | Reset  |
-   +--+---------------------+--------+
-   |              Envelope           |
-   +---------------------------------+
-   |                UDP              |
-   +---------------------------------+
-
-                             *HS = Crypto Handshake
+   +-----+------+
+   | TLS | HTTP |
+   +-----+------+------------+
+   |  Streams   | Congestion |
+   +------------+------------+
+   |        Frames           |
+   +            +------------+
+   |            |    FEC     +--------+---------+
+   +   +--------+------------+ Public | Version |
+   |   |     Encryption      | Reset  |  Nego.  |
+   +---+---------------------+--------+---------+
+   |                   Envelope                 |
+   +--------------------------------------------+
+   |                     UDP                    |
+   +--------------------------------------------+
 </pre>
 <p class="figure">Figure 1: QUIC Structure</p>
-<p id="rfc.section.2.p.4">This document describes a replacement of the cryptographic parts of QUIC.  This includes the handshake messages that are exchanged on stream 1, plus the record protection that is used to encrypt and authenticate all other frames.</p>
+<p id="rfc.section.2.p.4">This document defines the cryptographic parts of QUIC.  This includes the handshake messages that are exchanged on stream 1, plus the record protection that is used to encrypt and authenticate all other frames.</p>
 <h2 id="rfc.section.2.1"><a href="#rfc.section.2.1">2.1.</a> <a href="#handshake-overview" id="handshake-overview">Handshake Overview</a></h2>
 <p id="rfc.section.2.1.p.1">TLS 1.3 provides two basic handshake modes of interest to QUIC:</p>
 <p/>
@@ -458,7 +462,7 @@ li, p {
   <li>A full handshake in which the client is able to send application data after one round trip and the server immediately after receiving the first message from the client.</li>
   <li>A 0-RTT handshake in which the client uses information about the server to send immediately.  This data can be replayed by an attacker so it MUST NOT carry a self-contained trigger for any non-idempotent action.</li>
 </ul>
-<p id="rfc.section.2.1.p.3">A simplified TLS 1.3 handshake with 0-RTT application data is shown in <a href="#tls-full">Figure 2</a>, see <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a> for more options.</p>
+<p id="rfc.section.2.1.p.3">A simplified TLS 1.3 handshake with 0-RTT application data is shown in <a href="#tls-full">Figure 2</a>, see <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a> for more options and details.</p>
 <div id="rfc.figure.2"/>
 <div id="tls-full"/>
 <pre>
@@ -484,109 +488,176 @@ li, p {
 <p/>
 
 <ul>
-  <li>The server can respond to a ClientHello with a HelloRetryRequest, which adds an additional round trip prior to the basic exchange.  This is needed if the server wishes to request a different key exchange key from the client.  HelloRetryRequest might also be used to verify that the client is correctly able to receive packets on the address it claims to have (see <a href="#source-address">Section 4.2</a>).</li>
-  <li>A pre-shared key mode can be used for subsequent handshakes to avoid public key operations.  This might be the basis for 0-RTT, even if the remainder of the connection is protected by a new Diffie-Hellman exchange.</li>
+  <li>The server can respond to a ClientHello with a HelloRetryRequest, which adds an additional round trip prior to the basic exchange.  This is needed if the server wishes to request a different key exchange key from the client.  HelloRetryRequest is also used to verify that the client is correctly able to receive packets on the address it claims to have (see <a href="#source-address">Section 6.3</a>).</li>
+  <li>A pre-shared key mode can be used for subsequent handshakes to avoid public key operations.  This is the basis for 0-RTT data, even if the remainder of the connection is protected by a new Diffie-Hellman exchange.</li>
 </ul>
-<h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#quic-over-tls-structure" id="quic-over-tls-structure">QUIC over TLS Structure</a></h1>
-<p id="rfc.section.3.p.1">QUIC completes its cryptographic handshake on stream 1, which means that the negotiation of keying material happens within the QUIC protocol.  QUIC over TLS does the same, relying on the ordered delivery guarantees provided by QUIC to ensure that the TLS handshake packets are delivered reliably and in order.</p>
+<h1 id="rfc.section.3"><a href="#rfc.section.3">3.</a> <a href="#tls-in-stream-1" id="tls-in-stream-1">TLS in Stream 1</a></h1>
+<p id="rfc.section.3.p.1">QUIC completes its cryptographic handshake on stream 1, which means that the negotiation of keying material happens after the QUIC protocol has started.  This simplifies the use of TLS since QUIC is able to ensure that the TLS handshake packets are delivered reliably and in order.</p>
+<p id="rfc.section.3.p.2">QUIC Stream 1 carries a complete TLS connection.  This includes the TLS record layer in its entirety.  QUIC provides for reliable and in-order delivery of the TLS handshake messages on this stream.</p>
+<p id="rfc.section.3.p.3">Prior to the completion of the TLS handshake, QUIC frames can be exchanged.  However, these frames are not authenticated or confidentiality protected.  <a href="#pre-handshake">Section 5</a> covers some of the implications of this design and limitations on QUIC operation during this phase.</p>
+<p id="rfc.section.3.p.4">Once complete, QUIC frames and forward error control (FEC) messages are protected using QUIC record protection, see <a href="#record-protection">Section 4</a>.</p>
+<h2 id="rfc.section.3.1"><a href="#rfc.section.3.1">3.1.</a> <a href="#handshake-and-setup-sequence" id="handshake-and-setup-sequence">Handshake and Setup Sequence</a></h2>
+<p id="rfc.section.3.1.p.1">The integration of QUIC with a TLS handshake is shown in more detail in <a href="#quic-tls-handshake">Figure 3</a>.  QUIC <samp>STREAM</samp> frames on stream 1 carry the TLS handshake.  QUIC is responsible for ensuring that the handshake packets are re-sent in case of loss and that they can be ordered correctly.</p>
 <div id="rfc.figure.3"/>
-<div id="tls-quic-stack"/>
-<pre>
-   +-----+---------+
-   | TLS |  HTTP   |
-   +-----+----------+------------+
-   |    Streams     | Congestion |
-   +----------------+------------+
-   |          Frames             |
-   |                +------------+
-   |                |    FEC     +--------+
-   |     +----------+------------+ Public |
-   |     | TLS Record Protection | Reset  |
-   +-----+-----------------------+--------+
-   |               Envelope               |
-   +--------------------------------------+
-   |                 UDP                  |
-   +--------------------------------------+
-</pre>
-<p class="figure">Figure 3: QUIC over TLS</p>
-<p id="rfc.section.3.p.2">In this design the QUIC envelope carries QUIC frames until the TLS handshake completes.  After the handshake successfully completes the key exchange, QUIC frames are then protected by TLS record protection.</p>
-<p id="rfc.section.3.p.3">QUIC stream 1 is used to exchange TLS handshake packets.  QUIC provides for reliable and in-order delivery of the TLS handshake messages.</p>
-<p id="rfc.section.3.p.4">Prior to the completion of the TLS handshake, QUIC frames can be exchanged.  However, these frames are not authenticated or confidentiality protected.  <a href="#pre-handshake">Section 6</a> covers some of the implications of this design.</p>
-<p/>
-
-<dl>
-  <dt>Alternative Design:</dt>
-  <dd style="margin-left: 8">TLS could be used to protect the entire QUIC envelope.  QUIC version negotiation could be subsumed by TLS and ALPN <a href="#RFC7301">[RFC7301]</a>.  The only unprotected packets are then public resets and ACK frames, both of which could be given first octet values that would easily distinguish them from other TLS packets.  This requires that the QUIC sequence numbers be moved to the outside of the record.</dd>
-</dl>
-<h1 id="rfc.section.4"><a href="#rfc.section.4">4.</a> <a href="#mapping-of-quic-to-quic-over-tls" id="mapping-of-quic-to-quic-over-tls">Mapping of QUIC to QUIC over TLS</a></h1>
-<p id="rfc.section.4.p.1">Several changes to the structure of QUIC are necessary to make a layered design practical.</p>
-<p id="rfc.section.4.p.2">These changes produce the handshake shown in <a href="#quic-tls-handshake">Figure 4</a>.  In this handshake, QUIC STREAM frames on stream 1 carry the TLS handshake.  QUIC is responsible for ensuring that the handshake packets are re-sent in case of loss and that they can be ordered correctly.</p>
-<p id="rfc.section.4.p.3">QUIC operates without any record protection until the handshake completes, just as TLS over TCP does not include record protection for the handshake messages.  Once complete, QUIC frames and forward error control (FEC) messages are encapsulated in using TLS record protection.</p>
-<div id="rfc.figure.4"/>
 <div id="quic-tls-handshake"/>
 <pre>
     Client                                             Server
 
-   QUIC STREAM Frame &lt;stream 1&gt;
-    ClientHello
-     + QUIC Setup Parameters
-   (Finished)                 --------&gt;
-   (Replayable QUIC Frames &lt;any stream&gt;)
-   (end_of_early_data &lt;1&gt;) --------&gt;
-                                         QUIC STREAM Frame &lt;1&gt;
-                                                  ServerHello
-                                         {EncryptedExtensions}
-                                         {ServerConfiguration}
-                                                 {Certificate}
-                                           {CertificateVerify}
-                                                    {Finished}
-                             &lt;--------       [QUIC Frames/FEC]
-   QUIC STREAM Frame &lt;1&gt;
-   {Finished}                --------&gt;
+@A QUIC STREAM Frame(s) &lt;1&gt;:
+     ClientHello
+       + QUIC Setup Parameters
+                            --------&gt;
+                         0-RTT Key -&gt; @B
 
-   [QUIC Frames/FEC]         &lt;-------&gt;       [QUIC Frames/FEC]
+@B QUIC STREAM Frame(s) &lt;1&gt;:
+     (Finished)
+   Replayable QUIC Frames &lt;any stream&gt;
+                            --------&gt;
+
+                                      QUIC STREAM Frame &lt;1&gt;: @B/A
+                                               ServerHello
+                                      {Handshake Messages}
+                            &lt;--------
+                        1-RTT Key -&gt; @C
+
+                                             QUIC Frames/FEC @C
+                            &lt;--------
+@B QUIC STREAM Frame(s) &lt;1&gt;:
+     (end_of_early_data &lt;1&gt;)
+     {Finished}
+                            --------&gt;
+
+@C QUIC Frames/FEC          &lt;-------&gt;        QUIC Frames/FEC @C
 </pre>
-<p class="figure">Figure 4: QUIC over TLS Handshake</p>
-<p id="rfc.section.4.p.4">The remainder of this document describes the changes to QUIC and TLS that allow the protocols to operate together.</p>
-<h2 id="rfc.section.4.1"><a href="#rfc.section.4.1">4.1.</a> <a href="#version-negotiation" id="version-negotiation">Protocol and Version Negotiation</a></h2>
-<p id="rfc.section.4.1.p.1">The QUIC version negotiation mechanism is used to negotiate the version of QUIC that is used prior to the completion of the handshake.  However, this packet is not authenticated, enabling an active attacker to force a version downgrade.</p>
-<p id="rfc.section.4.1.p.2">To ensure that a QUIC version downgrade is not forced by an attacker, version information is copied into the TLS handshake, which provides integrity protection for the QUIC negotiation.  This doesn&#8217;t prevent version downgrade during the handshake, though it does prevent a connection from completing with a downgraded version, see <a href="#quic_parameters">Section 6.1</a>.</p>
+<p class="figure">Figure 3: QUIC over TLS Handshake</p>
+<p id="rfc.section.3.1.p.2">In <a href="#quic-tls-handshake">Figure 3</a>, symbols mean:</p>
+<p/>
+
+<ul>
+  <li>&#8221;&lt;&#8221; and &#8220;&gt;&#8221; enclose stream numbers.</li>
+  <li>&#8221;@&#8221; indicates the key phase that is currently used for protecting QUIC packets.</li>
+  <li>&#8221;(&#8220; and &#8220;)&#8221; enclose messages that are protected with TLS 0-RTT handshake or application keys.</li>
+  <li>&#8221;{&#8220; and &#8220;}&#8221; enclose messages that are protected by the TLS Handshake keys.</li>
+</ul>
+<p id="rfc.section.3.1.p.4">If 0-RTT is not possible, then the client does not send frames protected by the 0-RTT key (@B).  The only key transition on the client is from cleartext (@A) to 1-RTT protection (@C).</p>
+<p id="rfc.section.3.1.p.5">If 0-RTT data is not accepted by the server, then the server sends its handshake messages without protection (@A).  The client still transitions from @A to @B, but it can stop sending 0-RTT data and progress immediately to 1-RTT data when it receives a cleartext ServerHello.</p>
+<h1 id="rfc.section.4"><a href="#rfc.section.4">4.</a> <a href="#record-protection" id="record-protection">QUIC Record Protection</a></h1>
+<p id="rfc.section.4.p.1">QUIC provides a record protection layer that is responsible for authenticated encryption of packets.  The record protection layer uses keys provided by the TLS connection and authenticated encryption to provide confidentiality and integrity protection for the content of packets.</p>
+<p id="rfc.section.4.p.2">Different keys are used for QUIC and TLS record protection.  Having separate QUIC and TLS record protection means that TLS records can be protected by two different keys.  This redundancy is maintained for the sake of simplicity.</p>
+<h2 id="rfc.section.4.1"><a href="#rfc.section.4.1">4.1.</a> <a href="#key-phases" id="key-phases">Key Phases</a></h2>
+<p id="rfc.section.4.1.p.1">The transition to use of a new QUIC key occurs immediately after sending the TLS handshake messages that produced the key transition.  Every time that a new set of keys is used for protecting outbound messages, the KEY_PHASE bit in the public flags is toggled.  The KEY_PHASE bit on unencrypted messages is 0.</p>
+<p id="rfc.section.4.1.p.2">The KEY_PHASE bit on the public flags is the most significant bit (0x80).</p>
+<p id="rfc.section.4.1.p.3">The KEY_PHASE bit allows a recipient to detect a change in keying material without needing to receive the message that triggers the change.  This avoids head-of-line blocking around transitions between keys without relying on trial decryption.</p>
+<p id="rfc.section.4.1.p.4">The following transitions are defined:</p>
+<p/>
+
+<ul>
+  <li>The client transitions to using 0-RTT keys after sending the ClientHello.  This causes the KEY_PHASE bit on packets sent by the client to be set to 1.</li>
+  <li>The server transitions to using 0-RTT keys before sending the ServerHello, but only if the early data from the client is accepted.  This transition causes the KEY_PHASE bit on packets sent by the server to be set to 1.  If the server rejects 0-RTT data, the server&#8217;s handshake messages are sent without QUIC-level record protection with a KEY_PHASE of 0.  TLS handshake messages will still be protected by TLS record protection based on the TLS handshake traffic keys.</li>
+  <li>The server transitions to using 1-RTT keys after sending its Finished message.  This causes the KEY_PHASE bit to be set to 0 if early data was accepted, and 1 if the server rejected early data.</li>
+  <li>The client transitions to 1-RTT keys after sending its Finished message.  Subsequent messages from the client will then have a KEY_PHASE of 0 if 0-RTT data was sent, and 1 otherwise.</li>
+  <li>Both peers start sending messages protected by a new key immediately after sending a TLS KeyUpdate message. The value of the KEY_PHASE bit is changed each time.</li>
+</ul>
+<p id="rfc.section.4.1.p.6">At each point, both keying material (see <a href="#key-expansion">Section 4.2</a>) and the AEAD function used by TLS is interchanged with the values that are currently in use for protecting outbound packets.  Once a change of keys has been made, packets with higher sequence numbers MUST use the new keying material until a newer set of keys (and AEAD) are used.  The exception to this is that retransmissions of TLS handshake packets MUST use the keys that they were originally protected with.</p>
+<p id="rfc.section.4.1.p.7">Once a packet protected by a new key has been received, a recipient SHOULD retain the previous keys for a short period.  Retaining old keys allows the recipient to decode reordered packets around a change in keys.  Keys SHOULD be discarded when an endpoints has received all packets with sequence numbers lower than the lowest sequence number used for the new key, or when it determines that reordering of those packets is unlikely.  0-RTT keys SHOULD be retained until the handshake is complete.</p>
+<p id="rfc.section.4.1.p.8">The KEY_PHASE bit does not directly indicate which keys are in use.  Depending on whether 0-RTT data was sent and accepted, packets protected with keys derived from the same secret might be marked with different KEY_PHASE values.</p>
+<h3 id="rfc.section.4.1.1"><a href="#rfc.section.4.1.1">4.1.1.</a> <a href="#retransmission-of-tls-handshake-messages" id="retransmission-of-tls-handshake-messages">Retransmission of TLS Handshake Messages</a></h3>
+<p id="rfc.section.4.1.1.p.1">TLS handshake messages need to be retransmitted with the same level of cryptographic protection that was originally used to protect them.  Newer keys cannot be used to protect QUIC packets that carry TLS messages.</p>
+<p id="rfc.section.4.1.1.p.2">A client would be unable to decrypt retransmissions of a server&#8217;s handshake messages that are protected using the 1-RTT keys, since the calculation of the application data keys depends on the contents of the handshake messages.</p>
+<p id="rfc.section.4.1.1.p.3">This restriction means the creation of an exception to the requirement to always use new keys for sending once they are available.  A server MUST mark the retransmitted handshake messages with the same KEY_PHASE as the original messages to allow a recipient to distinguish the messages.</p>
+<h3 id="rfc.section.4.1.2"><a href="#rfc.section.4.1.2">4.1.2.</a> <a href="#key-update" id="key-update">Key Update</a></h3>
+<p id="rfc.section.4.1.2.p.1">Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing of messages without having to receive the TLS KeyUpdate message that triggers the key update.  This allows endpoints to start using updated keys immediately without the concern that a lost KeyUpdate will cause their messages to be indecipherable to their peer..</p>
+<p id="rfc.section.4.1.2.p.2">An endpoint MUST NOT initiate more than one key update at a time.  A new key update cannot be sent until the endpoint has received a matching KeyUpdate message from its peer; or, if the endpoint did not initiate the original key update, it has received an acknowledgment of its own KeyUpdate.</p>
+<p id="rfc.section.4.1.2.p.3">This ensures that there are at most two keys to distinguish between at any one time, for which the KEY_PHASE bit is sufficient.</p>
+<div id="rfc.figure.4"/>
+<div id="ex-key-update"/>
+<pre>
+   Initiating Peer                    Responding Peer
+
+@M KeyUpdate
+                    New Keys -&gt; @N
+@N QUIC Frames
+                      --------&gt;
+                                            KeyUpdate @N
+                      &lt;--------
+  -- Initiating Peer can initiate another KeyUpdate --
+ @N Acknowledgment
+                      --------&gt;
+  -- Responding Peer can initiate another KeyUpdate --
+</pre>
+<p class="figure">Figure 4: Key Update</p>
+<p id="rfc.section.4.1.2.p.4">As shown in <a href="#quic-tls-handshake">Figure 3</a> and <a href="#ex-key-update">Figure 4</a>, there is never a situation where there are more than two different sets of keying material that might be received by a peer.</p>
+<p id="rfc.section.4.1.2.p.5">A server cannot initiate a key update until it has received the client&#8217;s Finished message.  Otherwise, packets protected by the updated keys could be confused for retransmissions of handshake messages.  A client cannot initiate a key update until it has received an acknowledgment that its Finished message has been received.</p>
 <p/>
 
 <dl>
-  <dt>ISSUE:</dt>
-  <dd style="margin-left: 8">The QUIC version negotiation has poor performance in the event that a client is forced to downgrade from their preferred version.</dd>
+  <dt>Note:</dt>
+  <dd style="margin-left: 8">This models the key changes in the handshake as a key update initiated by the server, with the Finished message in the place of KeyUpdate.</dd>
 </dl>
-<h2 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#source-address" id="source-address">Source Address Validation</a></h2>
-<p id="rfc.section.4.2.p.1">QUIC implementations describe a source address token.  This is an opaque blob that a server provides to clients when they first use a given source address.  The client returns this token in subsequent messages as a return routeability check.  That is, the client returns this token to prove that it is able to receive packets at the source address that it claims.</p>
-<p id="rfc.section.4.2.p.2">Since this token is opaque and consumed only by the server, it can be included in the TLS 1.3 configuration identifier for 0-RTT handshakes.  Servers that use 0-RTT are advised to provide new configuration identifiers after every handshake to avoid passive linkability of connections from the same client.</p>
-<p id="rfc.section.4.2.p.3">A server that is under load might include the same information in the cookie extension/field of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not include the ability to include a cookie in HelloRetryRequest.)</p>
-<h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#record-protection" id="record-protection">Record Protection</a></h1>
-<p id="rfc.section.5.p.1">Each TLS record is encapsulated in the QUIC envelope.  This provides length information, which means that the length field can be dropped from the TLS record.</p>
-<p id="rfc.section.5.p.2">The sequence number used by TLS record protection is changed to deal with the potential for packets to be dropped or lost.  The QUIC sequence number is used in place of the monotonically increasing TLS record sequence number.  This means that the TLS record protection employed is closer to DTLS in both its form and the guarantees that are provided.</p>
-<p id="rfc.section.5.p.3">QUIC has a single, contiguous sequence number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.  The sequence number restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).</p>
-<p id="rfc.section.5.p.4">QUIC does not rely on there being a continuous sequence of application data packets; QUIC uses authenticated repair mechansims that operate above the layer of encryption.  QUIC can therefore operate without restarting sequence numbers.</p>
-<h2 id="rfc.section.5.1"><a href="#rfc.section.5.1">5.1.</a> <a href="#tls-handshake-encryption" id="tls-handshake-encryption">TLS Handshake Encryption</a></h2>
-<p id="rfc.section.5.1.p.1">TLS 1.3 adds encryption for handshake messages.  This introduces an additional transition between different record protection keys during the handshake.  A consequence of this is that it becomes more important to explicitly identify the transition from one set of keys to the next (see <a href="#key-update">Section 5.2</a>).</p>
-<h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#key-update" id="key-update">Key Update</a></h2>
-<p id="rfc.section.5.2.p.1">Each time that the TLS record protection keys are changed, the message initiating the change could be lost.  This results in subsequent packets being indecipherable to the peer that receives them.  Key changes happen at the conclusion of the handshake and and immediately after a KeyUpdate message.</p>
-<p id="rfc.section.5.2.p.2">TLS relies on an ordered, reliable transport and therefore provides no other mechanism to ensure that a peer receives the message initiating a key change prior to receiving the subsequent messages that are protected using the new key.  A similar mechanism here would introduce head-of-line blocking.</p>
-<p id="rfc.section.5.2.p.3">The simplest solution here is to steal a single bit from the unprotected part of the QUIC header that signals key updates, similar to how DTLS signals the epoch on each packet.  The epoch bit is encoded into 0x80 of the QUIC public flags.</p>
-<p id="rfc.section.5.2.p.4">Each time the epoch bit changes, an attempt is made to update the keys used to read.  Peers are prohibited from sending multiple KeyUpdate messages until they see a reciprocal KeyUpdate to prevent the chance that a transition is undetected as a result of two changes in this bit.</p>
-<p id="rfc.section.5.2.p.5">The transition from cleartext to encrypted packets is exempt from this limit of one key change.  Two key changes occur during the handshake.  The server sends packets in the clear, plus packets protected using handshake and application data keys.  With only a single bit available to discriminate between keys, packets protected with the application data keys will have the same bit value as cleartext packets.  This condition will be easily identified and handled, likely by discarding the application data, since the encrypted packets will be highly unlikely to be valid.</p>
-<h2 id="rfc.section.5.3"><a href="#rfc.section.5.3">5.3.</a> <a href="#sequence-number-reconstruction" id="sequence-number-reconstruction">Sequence Number Reconstruction</a></h2>
-<p id="rfc.section.5.3.p.1">Each peer maintains a 48-bit send sequence number that is incremented with each packet that is sent (even retransmissions).  The least significant 8-, 16-, 32-, or 48-bits of this number is encoded in the QUIC sequence number field in every packet.  A 16-bit send epoch number is maintained; the epoch is incremented each time new record protection keying material is used.  The least significant bit of the epoch number is encoded into the epoch bit (0x80) of the QUIC public flags.</p>
-<p id="rfc.section.5.3.p.2">A receiver maintains the same values, but recovers values based on the packets it receives.  This is based on the sequence number of packets that it has received.  A simple scheme predicts the receive sequence number of an incoming packet by incrementing the sequence number of the most recent packet to be successfully decrypted by one and expecting the sequence number to be within a range centered on that value.  The receive epoch value is incremented each time that the epoch bit (0x80) changes.</p>
-<p id="rfc.section.5.3.p.3">The sequence number used for record protection is the 64-bit value obtained by concatenating the epoch and sequence number, both in network byte order.</p>
-<h2 id="rfc.section.5.4"><a href="#rfc.section.5.4">5.4.</a> <a href="#alternative-design-exporters" id="alternative-design-exporters">Alternative Design: Exporters</a></h2>
-<p id="rfc.section.5.4.p.1">An exporter could be used to provide keying material for a QUIC-specific record protection.  This could draw on the selected cipher suite and the TLS record protection design so that the overall effort required to design and analyze is kept minimal.</p>
-<p id="rfc.section.5.4.p.2">One concern with using exporters is that TLS doesn&#8217;t define an exporter for use prior to the end of the handshake.  That means the creation of a special exporter for use in protecting 0-RTT data.  That&#8217;s a pretty sharp object to leave lying around, and it&#8217;s not clear what the properties we could provide.  (That doesn&#8217;t mean that there wouldn&#8217;t be demand for such a thing, the possibility has already been raised.)</p>
-<p id="rfc.section.5.4.p.3">An exporter-based scheme might opt not to use the handshake traffic keys to protect QUIC packets during the handshake, relying instead on separate protection for the TLS handshake records.  This complicates implementations somewhat, so an exporter might still be used.</p>
-<p id="rfc.section.5.4.p.4">In the end, using an exporter doesn&#8217;t alter the design significantly.  Given the risks, a modification to the record protocol is probably safer.</p>
-<h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#pre-handshake" id="pre-handshake">Pre-handshake QUIC Messages</a></h1>
-<p id="rfc.section.6.p.1">Implementations MUST NOT exchange data on any stream other than stream 1 prior to the TLS handshake completing.  However, QUIC requires the use of several types of frame for managing loss detection and recovery.  In addition, it might be useful to use the data acquired during the exchange of unauthenticated messages for congestion management.</p>
-<p id="rfc.section.6.p.2">The actions that a peer takes as a result of receiving an unauthenticated packet needs tobe limited.  In particular, state established by these packets cannot be retained once record protection commences.</p>
-<p id="rfc.section.6.p.3">There are several approaches possible for dealing with unauthenticated packets prior to handshake completion:</p>
+<h2 id="rfc.section.4.2"><a href="#rfc.section.4.2">4.2.</a> <a href="#key-expansion" id="key-expansion">QUIC Key Expansion</a></h2>
+<p id="rfc.section.4.2.p.1">The following table shows QUIC keys, when they are generated and the TLS secret from which they are derived:</p>
+<table cellpadding="3" cellspacing="0" class="tt full center">
+  <thead>
+    <tr>
+      <th class="left">Key</th>
+      <th class="left">TLS Secret</th>
+      <th class="left">Phase</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td class="left">0-RTT</td>
+      <td class="left">early_traffic_secret</td>
+      <td class="left">&#8220;QUIC 0-RTT key expansion&#8221;</td>
+    </tr>
+    <tr>
+      <td class="left">1-RTT</td>
+      <td class="left">traffic_secret_N</td>
+      <td class="left">&#8220;QUIC 1-RTT key expansion&#8221;</td>
+    </tr>
+  </tbody>
+</table>
+<p id="rfc.section.4.2.p.2">0-RTT keys are those keys that are used in resumed connections prior to the completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed and so has some restructions on its use, see <a href="#using-early-data">Section 5.2</a>.  0-RTT keys are used after sending or receiving a ClientHello.</p>
+<p id="rfc.section.4.2.p.3">1-RTT keys are used after the TLS handshake completes.  There are potentially multiple sets of 1-RTT keys; new 1-RTT keys are created by sending a TLS KeyUpdate message.  1-RTT keys are used after sending a Finished or KeyUpdate message.</p>
+<p id="rfc.section.4.2.p.4">The complete key expansion uses the same process for key expansion as defined in Section 7.3 of <a href="#I-D.ietf-tls-tls13">[I-D.ietf-tls-tls13]</a>.  For example, the Client Write Key for the data sent immediately after sending the TLS Finished message is:</p>
+<pre>
+   label = "QUIC 1-RTT key expansion, client write key"
+   client_write = HKDF-Expand-Label(traffic_secret_0, label,
+                                    "", key_length)
+</pre>
+<p id="rfc.section.4.2.p.5">This results in a label input to HKDF that includes a two-octet length field, the string &#8220;TLS 1.3, QUIC 1-RTT key expansion, client write key&#8221; and a zero octet.</p>
+<p id="rfc.section.4.2.p.6">The QUIC record protection initially starts without keying material.  When the TLS state machine produces the corresponding secret, new keys are generated from the TLS connection and used to protect the QUIC record protection.</p>
+<p id="rfc.section.4.2.p.7">The Authentication Encryption with Associated Data (AEAD) <a href="#RFC5116">[RFC5116]</a> function used is the same one that is negotiated for use with the TLS connection.  For example, if TLS is using the TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.</p>
+<h2 id="rfc.section.4.3"><a href="#rfc.section.4.3">4.3.</a> <a href="#quic-aead-application" id="quic-aead-application">QUIC AEAD application</a></h2>
+<p id="rfc.section.4.3.p.1">Regular QUIC packets are protected by an AEAD <a href="#RFC5116">[RFC5116]</a>.  Version negotiation and public reset packets are not protected.</p>
+<p id="rfc.section.4.3.p.2">Once TLS has provided a key, the contents of regular QUIC packets immediately after any TLS messages have been sent are protected by the AEAD selected by TLS.</p>
+<p id="rfc.section.4.3.p.3">The key, K, for the AEAD is either the Client Write Key or the Server Write Key, derived as defined in <a href="#key-expansion">Section 4.2</a>.</p>
+<p id="rfc.section.4.3.p.4">The nonce, N, for the AEAD is formed by combining either the Client Write IV or Server Write IV with the sequence numbers.  The 48 bits of the reconstructed QUIC sequence number (see <a href="#seq-num">Section 4.4</a>) in network byte order is left-padded with zeros to the N_MAX parameter of the AEAD (see Section 4 of <a href="#RFC5116">[RFC5116]</a>).  The exclusive OR of the padded sequence number and the IV forms the AEAD nonce.</p>
+<p id="rfc.section.4.3.p.5">The associated data, A, for the AEAD is an empty sequence.</p>
+<p id="rfc.section.4.3.p.6">The input plaintext, P, for the AEAD is the contents of the QUIC frame following the packet number, as described in <a href="#I-D.tsvwg-quic-protocol">[I-D.tsvwg-quic-protocol]</a>.</p>
+<p id="rfc.section.4.3.p.7">The output ciphertext, C, of the AEAD is transmitted in place of P.</p>
+<p id="rfc.section.4.3.p.8">Prior to TLS providing keys, no record protection is performed and the plaintext, P, is transmitted unmodified.</p>
+<p/>
+
+<dl>
+  <dt>Note:</dt>
+  <dd style="margin-left: 8">QUIC defined a null-encryption that had an additional, hash-based checksum for cleartext packets.  This might be added here, but it is more complex.</dd>
+</dl>
+<h2 id="rfc.section.4.4"><a href="#rfc.section.4.4">4.4.</a> <a href="#seq-num" id="seq-num">Sequence Number Reconstruction</a></h2>
+<p id="rfc.section.4.4.p.1">Each peer maintains a 48-bit sequence number that is incremented with every packet that is sent, including retransmissions.  The least significant 8-, 16-, 32-, or 48-bits of this number is encoded in the QUIC sequence number field in every packet.</p>
+<p id="rfc.section.4.4.p.2">A receiver maintains the same values, but recovers values based on the packets it receives.  This is based on the sequence number of packets that it has received.  A simple scheme predicts the receive sequence number of an incoming packet by incrementing the sequence number of the most recent packet to be successfully decrypted by one and expecting the sequence number to be within a range centered on that value.</p>
+<p id="rfc.section.4.4.p.3">A more sophisticated algorithm can almost double the search space by checking backwards from the most recent sequence for a received (or abandoned) packet.  If a packet was received, then the packet contains a sequence number that is greater than the most recent sequence number.  If no such packet was found, the number is assumed to be in the smaller window centered on the next sequence number, as in the simpler scheme.</p>
+<p/>
+
+<dl>
+  <dt>Note:</dt>
+  <dd style="margin-left: 8">QUIC has a single, contiguous sequence number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.  The sequence number restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).  QUIC does not assume a reliable transport and is therefore required to handle attacks where packets are dropped in other ways.  TLS maintains a separate sequence number that is used for record protection on the connection that is hosted on stream 1.  This sequence number is reset according to the rules in the TLS protocol.</dd>
+</dl>
+<h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#pre-handshake" id="pre-handshake">Pre-handshake QUIC Messages</a></h1>
+<p id="rfc.section.5.p.1">Implementations MUST NOT exchange data on any stream other than stream 1 prior to the completion of the TLS handshake.  However, QUIC requires the use of several types of frame for managing loss detection and recovery.  In addition, it might be useful to use the data acquired during the exchange of unauthenticated messages for congestion management.</p>
+<p id="rfc.section.5.p.2">This section generally only applies to TLS handshake messages from both peers and acknowledgments of the packets carrying those messages.  In many cases, the need for servers to provide acknowledgments is minimal, since the messages that clients send are small and implicitly acknowledged by the server&#8217;s responses.</p>
+<p id="rfc.section.5.p.3">The actions that a peer takes as a result of receiving an unauthenticated packet needs to be limited.  In particular, state established by these packets cannot be retained once record protection commences.</p>
+<p id="rfc.section.5.p.4">There are several approaches possible for dealing with unauthenticated packets prior to handshake completion:</p>
 <p/>
 
 <ul>
@@ -596,79 +667,27 @@ li, p {
   <li>save them and use them when they can be properly authenticated</li>
   <li>treat them as a fatal error</li>
 </ul>
-<p id="rfc.section.6.p.5">Different strategies are appropriate for different types of data.  This document proposes that all strategies are possible depending on the type of message.</p>
+<p id="rfc.section.5.p.6">Different strategies are appropriate for different types of data.  This document proposes that all strategies are possible depending on the type of message.</p>
 <p/>
 
 <ul>
-  <li>Transport parameters and options are made usable and authenticated as part of the TLS handshake (see <a href="#quic_parameters">Section 6.1</a>).</li>
-  <li>Most unprotected messages are treated as fatal errors when received except for the small number necessary to permit the handshake to complete (see <a href="#pre-handshake-unprotected">Section 6.2</a>).</li>
-  <li>Protected packets can be discarded, but can be saved and later used (see <a href="#pre-handshake-protected">Section 6.3</a>).</li>
+  <li>Transport parameters and options are made usable and authenticated as part of the TLS handshake (see <a href="#quic_parameters">Section 6.2</a>).</li>
+  <li>Most unprotected messages are treated as fatal errors when received except for the small number necessary to permit the handshake to complete (see <a href="#pre-handshake-unprotected">Section 5.1</a>).</li>
+  <li>Protected packets can either be discarded or saved and later used (see <a href="#pre-handshake-protected">Section 5.3</a>).</li>
 </ul>
-<h2 id="rfc.section.6.1"><a href="#rfc.section.6.1">6.1.</a> <a href="#quic_parameters" id="quic_parameters">QUIC Extension</a></h2>
-<p id="rfc.section.6.1.p.1">A client describes characteristics of the transport protocol it intends to conduct with the server in a new QUIC-specific extension in its ClientHello.  The server uses this information to determine whether it wants to continue the connection, request source address validation, or reject the connection.  Having this information unencrypted permits this check to occur prior to committing the resources needed to complete the initial key exchange.</p>
-<p id="rfc.section.6.1.p.2">If the server decides to complete the connection, it generates a corresponding response and includes it in the EncryptedExtensions message.</p>
-<p id="rfc.section.6.1.p.3">These parameters are not confidentiality-protected when sent by the client, but the server response is protected by the handshake traffic keys.  The entire exchange is integrity protected once the handshake completes.</p>
-<p id="rfc.section.6.1.p.4">This information is not used by TLS, but can be passed to the QUIC protocol as initialization parmeters.</p>
-<p id="rfc.section.6.1.p.5">The <samp>quic_parameters</samp> extension contains a declarative set of parameters that establish QUIC operating parameters and constrain the behaviour of a peer.  The connection identifier and version are first negotiated using QUIC, and are included in the TLS handshake in order to provide integrity protection.</p>
-<pre>
-   enum {
-       receive_buffer(0),
-       (65535)
-   } QuicTransportParameterType;
-
-   struct {
-       QuicTransportParameterType type;
-       uint32 value;
-   } QuicTransportParameter;
-
-   uint32 QuicVersion;
-
-   enum {
-       (65535)
-   } QuicOption;
-
-   struct {
-       uint64 connection_id;
-       QuicVersion quic_version;
-       QuicVersion supported_quic_versions&lt;0..2^8-1&gt;;
-       uint32 connection_initial_window;
-       uint32 stream_initial_window;
-       uint32 implicit_shutdown_timeout;
-       QuicTransportParameter transport_parameters&lt;0..2^16-1&gt;;
-       QuicOption options&lt;0..2^8-2&gt;;
-   } QuicParametersExtension;
-</pre>
-<p id="rfc.section.6.1.p.6">This extension MUST be included if a QUIC version is negotiated.  A server MUST NOT negotiate QUIC if this extension is not present.</p>
-<p id="rfc.section.6.1.p.7">Based on the values offered by a client a server MAY use the values in this extension to determine whether it wants to continue the connection, request source address validation, or reject the connection.  Since this extension is initially unencrypted, the server can use the information prior to committing the resources needed to complete a key exchange.</p>
-<p id="rfc.section.6.1.p.8">If the server decides to use QUIC, this extension MUST be included in the EncryptedExtensions message.</p>
-<p id="rfc.section.6.1.p.9">The parameters are:</p>
+<h2 id="rfc.section.5.1"><a href="#rfc.section.5.1">5.1.</a> <a href="#pre-handshake-unprotected" id="pre-handshake-unprotected">Unprotected Frames Prior to Handshake Completion</a></h2>
+<p id="rfc.section.5.1.p.1">This section describes the handling of messages that are sent and received prior to the completion of the TLS handshake.</p>
+<p id="rfc.section.5.1.p.2">Sending and receiving unprotected messages is hazardous.  Unless expressly permitted, receipt of an unprotected message of any kind MUST be treated as a fatal error.</p>
+<h3 id="rfc.section.5.1.1"><a href="#rfc.section.5.1.1">5.1.1.</a> <a href="#stream-frames" id="stream-frames">STREAM Frames</a></h3>
+<p><samp>STREAM</samp> frames for stream 1 are permitted.  These carry the TLS handshake messages.</p>
+<p id="rfc.section.5.1.1.p.2">Receiving unprotected <samp>STREAM</samp> frames for other streams MUST be treated as a fatal error.</p>
 <p/>
 
 <dl>
-  <dt>connection_id:</dt>
-  <dd style="margin-left: 8">The 64-bit connection identifier for the connection, as selected by the client.</dd>
-  <dt>quic_version:</dt>
-  <dd style="margin-left: 8">The currently selected QUIC version that is used for the connection.  This is the version negotiated using the unauthenticated QUIC version negotiation (<a href="#version-negotiation">Section 4.1</a>).</dd>
-  <dt>supported_quic_versions:</dt>
-  <dd style="margin-left: 8">This is a list of supported QUIC versions for each peer.  A client sends an empty list if the version of QUIC being used is their preferred version; however, a client MUST include their preferred version if this was not negotiated using QUIC version negotiation.  A server MUST include all versions that it supports in this list.</dd>
-  <dt>connection_initial_window:</dt>
-  <dd style="margin-left: 8">The initial value for the connection flow control window for the endpoint, in octets.</dd>
-  <dt>connection_initial_window:</dt>
-  <dd style="margin-left: 8">The initial value for the flow control window of new streams created by the peer endpoint, in octets.</dd>
-  <dt>implicit_shutdown_timeout:</dt>
-  <dd style="margin-left: 8">The time, in seconds, that a connection can remain idle before being implicitly shutdown.</dd>
-  <dt>transport_parameters:</dt>
-  <dd style="margin-left: 8">A list of parameters for the QUIC connection, expressed as key-value pairs of arbitrary length.  The QuicTransportParameterType identifies each parameter; duplicate types are not permitted and MUST be rejected with a fatal illegal_parameter alert.  Type values are taken from a single space that is shared by all QUIC versions.  <dl><dt>ISSUE:</dt><dd style="margin-left: 8">There is currently no way to update the value of parameters once the connection has started.  QUIC crypto provided a SCFG message that could be sent after the connection was established.</dd></dl><p> </p></dd>
-  <dt>options:</dt>
-  <dd style="margin-left: 8">A list of options that can be negotiated for a given connection.  These are set during the initial handshake and are fixed thereafter.  These options are used to enable or disable optional features in the protocol.  The set of features that are supported across different versions might vary.  A client SHOULD include all options that it is willing to use.  The server MAY select any subset of those options that apply to the version of QUIC that it selects.  Only those options selected by the server are available for use.  <dl><dt>Note:</dt><dd style="margin-left: 8">This sort of optional behaviour seems like it could be accommodated adequately by defining new versions of QUIC for each experiment.  However, as an evolving protocol, multiple experiments need to be conducted concurrently and continuously.  The options parameter provides a flexible way to regulate which experiments are enabled on a per-connection basis.</dd></dl><p> </p></dd>
+  <dt>Issue:</dt>
+  <dd style="margin-left: 8">Is it possible to send a <samp>STREAM</samp> frame for stream 1 that contains no data? Is this detectable?  Does it comprise an attack?  For instance, could an attacker inject a frame that appears to contain TLS application data?</dd>
 </dl>
-<h2 id="rfc.section.6.2"><a href="#rfc.section.6.2">6.2.</a> <a href="#pre-handshake-unprotected" id="pre-handshake-unprotected">Unprotected Frames Prior to Handshake Completion</a></h2>
-<p id="rfc.section.6.2.p.1">This section describes the handling of messages that are sent and received prior to the completion of the TLS handshake.</p>
-<p id="rfc.section.6.2.p.2">Sending and receiving unprotected messages is hazardous.  Unless expressly permitted, receipt of an unprotected message of any kind MUST be treated as a fatal error.</p>
-<h3 id="rfc.section.6.2.1"><a href="#rfc.section.6.2.1">6.2.1.</a> <a href="#stream-frames" id="stream-frames">STREAM Frames</a></h3>
-<p><samp>STREAM</samp> frames for stream 1 are permitted.  These carry the TLS handshake messages.</p>
-<p id="rfc.section.6.2.1.p.2">Receiving unprotected <samp>STREAM</samp> frames that do not contain TLS handshake messages MUST be treated as a fatal error.</p>
-<h3 id="rfc.section.6.2.2"><a href="#rfc.section.6.2.2">6.2.2.</a> <a href="#ack-frames" id="ack-frames">ACK Frames</a></h3>
+<h3 id="rfc.section.5.1.2"><a href="#rfc.section.5.1.2">5.1.2.</a> <a href="#ack-frames" id="ack-frames">ACK Frames</a></h3>
 <p><samp>ACK</samp> frames are permitted prior to the handshake being complete.  However, an unauthenticated <samp>ACK</samp> frame can only be used to obtain NACK ranges.  Timestamps MUST NOT be included in an unprotected ACK frame, since these might be modified by an attacker with the intent of altering congestion control response.  Information on FEC-revived packets is redundant, since use of FEC in this phase is prohibited.</p>
 <p><samp>ACK</samp> frames MAY be sent a second time once record protection is enabled.  Once protected, timestamps can be included.</p>
 <p/>
@@ -677,42 +696,64 @@ li, p {
   <dt>Editor&#8217;s Note:</dt>
   <dd style="margin-left: 8">This prohibition might be a little too strong, but this is the only obviously safe option.  If the amount of damage that an attacker can do by modifying timestamps is limited, then it might be OK to permit the inclusion of timestamps.  Note that an attacker need not be on-path to inject an ACK.</dd>
 </dl>
-<h3 id="rfc.section.6.2.3"><a href="#rfc.section.6.2.3">6.2.3.</a> <a href="#windowupdate-frames" id="windowupdate-frames">WINDOW_UPDATE Frames</a></h3>
-<p id="rfc.section.6.2.3.p.1">Sending a <samp>WINDOW_UPDATE</samp> on stream 1 might be necessary to permit the completion of the TLS handshake, particularly in cases where the certification path is lengthy.  To avoid stalling due to flow control exhaustion, <samp>WINDOW_UPDATE</samp> frames with stream 1 are permitted.</p>
-<p id="rfc.section.6.2.3.p.2">Receiving a <samp>WINDOW_UPDATE</samp> frame on streams other than 1 MUST be treated as a fatal error.</p>
-<p id="rfc.section.6.2.3.p.3">Stream 1 is exempt from the connection-level flow control window.</p>
-<p id="rfc.section.6.2.3.p.4">The position of the flow control window MUST be reset to defaults once the TLS handshake is complete.  This might result in the window position for either the connection or stream 1 being smaller than the number of octets that have been sent on those streams.  A <samp>WINDOW_UPDATE</samp> frame might therefore be necessary to prevent stream 1 from being stalled.</p>
+<h3 id="rfc.section.5.1.3"><a href="#rfc.section.5.1.3">5.1.3.</a> <a href="#windowupdate-frames" id="windowupdate-frames">WINDOW_UPDATE Frames</a></h3>
+<p><samp>WINDOW_UPDATE</samp> frames MUST NOT be sent unprotected.</p>
+<p id="rfc.section.5.1.3.p.2">Though data is exchanged on stream 1, the initial flow control window is is sufficiently large to allow the TLS handshake to complete.  However, this limits the maximum size of the TLS handshake.  This is unlikely to cause issues unless a server or client provides an abnormally large certificate chain.</p>
+<p id="rfc.section.5.1.3.p.3">Stream 1 is exempt from the connection-level flow control window.</p>
+<h3 id="rfc.section.5.1.4"><a href="#rfc.section.5.1.4">5.1.4.</a> <a href="#fec-packets" id="fec-packets">FEC Packets</a></h3>
+<p id="rfc.section.5.1.4.p.1">FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints MUST treat receipt of an unprotected FEC packet as a fatal error.</p>
+<h3 id="rfc.section.5.1.5"><a href="#rfc.section.5.1.5">5.1.5.</a> <a href="#denial-of-service-with-unprotected-packets" id="denial-of-service-with-unprotected-packets">Denial of Service with Unprotected Packets</a></h3>
+<p id="rfc.section.5.1.5.p.1">Accepting unprotected - specifically unauthenticated - packets presents a denial of service risk to endpoints.  An attacker that is able to inject unprotected packets can cause a recipient to drop even protected packets with a matching sequence number.  The spurious packet shadows the genuine packet, causing the genuine packet to be ignored as redundant.</p>
+<p id="rfc.section.5.1.5.p.2">Once the TLS handshake is complete, both peers MUST ignore unprotected packets.  The handshake is complete when the server receives a client&#8217;s Finished message and when a client receives an acknowledgement that their Finished message was received.  From that point onward, unprotected messages can be safely dropped.  Note that the client could retransmit its Finished message to the server, so the server cannot reject such a message.</p>
+<p id="rfc.section.5.1.5.p.3">Since only TLS handshake packets and acknowledgments are sent in the clear, an attacker is able to force implementations to rely on retransmission for packets that are lost or shadowed.  Thus, an attacker that intends to deny service to an endpoint has to drop or shadow protected packets in order to ensure that their victim continues to accept unprotected packets.  The ability to shadow packets means that an attacker does not need to be on path.</p>
 <p/>
 
 <dl>
-  <dt>Note:</dt>
-  <dd style="margin-left: 8">This is only potentially problematic for servers, who might need to send large certificate chains.  In other cases, this is unlikely given that QUIC - like HTTP <a href="#RFC7230">[RFC7230]</a> - is a protocol where the server is unable to exercise the opportunity TLS presents to send first.</dd>
-  <dt></dt>
-  <dd style="margin-left: 8">If a server has a large certificate chain, or later modifications or extensions to QUIC permit the server to send first, a client might reduce the chance of stalling due to flow control in this first round trip by setting larger values for the initial stream and connection flow control windows using the <samp>quic_parameters</samp> extension (<a href="#quic_parameters">Section 6.1</a>).</dd>
-  <dt>Editor&#8217;s Note:</dt>
-  <dd style="margin-left: 8">Unlike <samp>ACK</samp>, the prohibition on <samp>WINDOW_UPDATE</samp> is much less of an imposition on implementations.  And, given that a spurious <samp>WINDOW_UPDATE</samp> might be used to create a great deal of memory pressure on an endpoint, the restriction seems justifiable.  Besides, I understand this one a lot better.</dd>
+  <dt>ISSUE:</dt>
+  <dd style="margin-left: 8">This would not be an issue if QUIC had a randomized starting sequence number.  If we choose to randomize, we fix this problem and reduce the denial of service exposure to on-path attackers.  The only possible problem is in authenticating the initial value, so that peers can be sure that they haven&#8217;t missed an initial message.</dd>
 </dl>
-<h3 id="rfc.section.6.2.4"><a href="#rfc.section.6.2.4">6.2.4.</a> <a href="#fec-packets" id="fec-packets">FEC Packets</a></h3>
-<p id="rfc.section.6.2.4.p.1">FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints MUST treat receipt of an unprotected FEC packet as a fatal error.</p>
-<h2 id="rfc.section.6.3"><a href="#rfc.section.6.3">6.3.</a> <a href="#pre-handshake-protected" id="pre-handshake-protected">Protected Frames Prior to Handshake Completion</a></h2>
-<p id="rfc.section.6.3.p.1">Due to reordering and loss, protected packets might be received by an endpoint before the final handshake messages are received.  If these can be decrypted successfully, such packets MAY be stored and used once the handshake is complete.</p>
-<p id="rfc.section.6.3.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
-<p id="rfc.section.6.3.p.3">TLS handshake messages are covered by record protection during the handshake, once key agreement has completed.  This means that protected messages need to be decrypted to determine if they are TLS handshake messages or not.  Similarly, <samp>ACK</samp> and <samp>WINDOW_UPDATE</samp> frames might be needed to successfully complete the TLS handshake.</p>
-<p id="rfc.section.6.3.p.4">Any timestamps present in <samp>ACK</samp> frames MUST be ignored rather than causing a fatal error.  Timestamps on protected frames MAY be saved and used once the TLS handshake completes successfully.</p>
-<p id="rfc.section.6.3.p.5">An endpoint MAY save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.  Failing to do this might result in temporary stalling of affected streams.</p>
-<h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#connection-id" id="connection-id">Connection ID</a></h1>
-<p id="rfc.section.7.p.1">The QUIC connection identifier serves to identify a connection and to allow a server to resume an existing connection from a new client address in case of mobility events.  However, this creates an identifier that a passive observer <a href="#RFC7258">[RFC7258]</a> can use to correlate connections.</p>
-<p id="rfc.section.7.p.2">TLS 1.3 offers connection resumption using pre-shared keys, which also allows a client to send 0-RTT application data.  This mode could be used to continue a connection rather than rely on a publicly visible correlator.  This only requires that servers produce a new ticket on every connection and that clients do not resume from the same ticket more than once.</p>
-<p id="rfc.section.7.p.3">The advantage of relying on 0-RTT modes for mobility events is that this is also more robust.  If the new point of attachment results in contacting a new server instance - one that lacks the session state - then a fallback is easy.</p>
-<p id="rfc.section.7.p.4">The main drawback with a clean restart or anything resembling a restart is that accumulated state can be lost.  Aside from progress on incomplete requests, the state of the HPACK header compression table could be quite valuable.  Existing QUIC implementations use the connection ID to route packets to the server that is handling the connection, which avoids this sort of problem.</p>
-<p id="rfc.section.7.p.5">A lightweight state resurrection extension might be used to avoid having to recreate any expensive state.</p>
-<h1 id="rfc.section.8"><a href="#rfc.section.8">8.</a> <a href="#security-considerations" id="security-considerations">Security Considerations</a></h1>
-<p id="rfc.section.8.p.1">There are likely to be some real clangers here eventually, but the current set of issues is well captured in the relevant sections of the main text.</p>
-<p id="rfc.section.8.p.2">Never assume that because it isn&#8217;t in the security considerations section it doesn&#8217;t affect security.  Most of this document does.</p>
-<h1 id="rfc.section.9"><a href="#rfc.section.9">9.</a> <a href="#iana-considerations" id="iana-considerations">IANA Considerations</a></h1>
-<p id="rfc.section.9.p.1">This document has no IANA actions.  Yet.</p>
-<h1 id="rfc.references"><a href="#rfc.references">10.</a> References</h1>
-<h2 id="rfc.references.1"><a href="#rfc.references.1">10.1.</a> Normative References</h2>
+<p id="rfc.section.5.1.5.p.5">In addition to denying endpoints messages, an attacker to generate packets that cause no state change in a recipient.  See <a href="#useless">Section 7.2</a> for a discussion of these risks.</p>
+<p id="rfc.section.5.1.5.p.6">To avoid receiving TLS packets that contain no useful data, a TLS implementation MUST reject empty TLS handshake records and any record that is not permitted by the TLS state machine.  Any TLS application data or alerts - other than a single end_of_early_data at the appropriate time - that is received prior to the end of the handshake MUST be treated as a fatal error.</p>
+<h2 id="rfc.section.5.2"><a href="#rfc.section.5.2">5.2.</a> <a href="#using-early-data" id="using-early-data">Use of 0-RTT Keys</a></h2>
+<p id="rfc.section.5.2.p.1">If 0-RTT keys are available, the lack of replay protection means that restrictions on their use are necessary to avoid replay attacks on the protocol.</p>
+<p id="rfc.section.5.2.p.2">A client MUST only use 0-RTT keys to protect data that is idempotent.  A client MAY wish to apply additional restrictions on what data it sends prior to the completion of the TLS handshake.  A client otherwise treats 0-RTT keys as equivalent to 1-RTT keys.</p>
+<p id="rfc.section.5.2.p.3">A client that receives an indication that its 0-RTT data has been accepted by a server can send 0-RTT data until it receives all of the server&#8217;s handshake messages.  A client SHOULD stop sending 0-RTT data if it receives an indication that 0-RTT data has been rejected.  In addition to a ServerHello without an early_data extension, an unprotected handshake message with a KEY_PHASE bit set to 0 indicates that 0-RTT data has been rejected.</p>
+<p id="rfc.section.5.2.p.4">A client SHOULD send its end_of_early_data alert only after it has received all of the server&#8217;s handshake messages.  Alternatively phrased, a client is encouraged to use 0-RTT keys until 1-RTT keys become available.  This prevents stalling of the connection and allows the client to send continuously.</p>
+<p id="rfc.section.5.2.p.5">A server MUST NOT use 0-RTT keys to protect anything other than TLS handshake messages.  Servers therefore treat packets protected with 0-RTT keys as equivalent to unprotected packets in determining what is permissible to send.  A server protects handshake messages using the 0-RTT key if it decides to accept a 0-RTT key.  A server MUST still include the early_data extension in its ServerHello message.</p>
+<p id="rfc.section.5.2.p.6">This restriction prevents a server from responding to a request using frames protected by the 0-RTT keys.  This ensures that all application data from the server are always protected with keys that have forward secrecy.  However, this results in head-of-line blocking at the client because server responses cannot be decrypted until all the server&#8217;s handshake messages are received by the client.</p>
+<h2 id="rfc.section.5.3"><a href="#rfc.section.5.3">5.3.</a> <a href="#pre-handshake-protected" id="pre-handshake-protected">Protected Frames Prior to Handshake Completion</a></h2>
+<p id="rfc.section.5.3.p.1">Due to reordering and loss, protected packets might be received by an endpoint before the final handshake messages are received.  If these can be decrypted successfully, such packets MAY be stored and used once the handshake is complete.</p>
+<p id="rfc.section.5.3.p.2">Unless expressly permitted below, encrypted packets MUST NOT be used prior to completing the TLS handshake, in particular the receipt of a valid Finished message and any authentication of the peer.  If packets are processed prior to completion of the handshake, an attacker might use the willingness of an implementation to use these packets to mount attacks.</p>
+<p id="rfc.section.5.3.p.3">TLS handshake messages are covered by record protection during the handshake, once key agreement has completed.  This means that protected messages need to be decrypted to determine if they are TLS handshake messages or not.  Similarly, <samp>ACK</samp> and <samp>WINDOW_UPDATE</samp> frames might be needed to successfully complete the TLS handshake.</p>
+<p id="rfc.section.5.3.p.4">Any timestamps present in <samp>ACK</samp> frames MUST be ignored rather than causing a fatal error.  Timestamps on protected frames MAY be saved and used once the TLS handshake completes successfully.</p>
+<p id="rfc.section.5.3.p.5">An endpoint MAY save the last protected <samp>WINDOW_UPDATE</samp> frame it receives for each stream and apply the values once the TLS handshake completes.  Failing to do this might result in temporary stalling of affected streams.</p>
+<h1 id="rfc.section.6"><a href="#rfc.section.6">6.</a> <a href="#quic-specific-additions-to-the-tls-handshake" id="quic-specific-additions-to-the-tls-handshake">QUIC-Specific Additions to the TLS Handshake</a></h1>
+<p id="rfc.section.6.p.1">QUIC uses the TLS handshake for more than just negotiation of cryptographic parameters.  The TLS handshake validates protocol version selection, provides preliminary values for QUIC transport parameters, and allows a server to perform return routeability checks on clients.</p>
+<h2 id="rfc.section.6.1"><a href="#rfc.section.6.1">6.1.</a> <a href="#version-negotiation" id="version-negotiation">Protocol and Version Negotiation</a></h2>
+<p id="rfc.section.6.1.p.1">The QUIC version negotiation mechanism is used to negotiate the version of QUIC that is used prior to the completion of the handshake.  However, this packet is not authenticated, enabling an active attacker to force a version downgrade.</p>
+<p id="rfc.section.6.1.p.2">To ensure that a QUIC version downgrade is not forced by an attacker, version information is copied into the TLS handshake, which provides integrity protection for the QUIC negotiation.  This does not prevent version downgrade during the handshake, though it means that such a downgrade causes a handshake failure.</p>
+<p id="rfc.section.6.1.p.3">Protocols that use the QUIC transport MUST use Application Layer Protocol Negotiation (ALPN) <a href="#RFC7301">[RFC7301]</a>.  The ALPN identifier for the protocol MUST be specific to the QUIC version that it operates over.  When constructing a ClientHello, clients MUST include a list of all the ALPN identifiers that they support, regardless of whether the QUIC version that they have currently selected supports that protocol.</p>
+<p id="rfc.section.6.1.p.4">Servers SHOULD select an application protocol based solely on the information in the ClientHello, not using the QUIC version that the client has selected.  If the protocol that is selected is not supported with the QUIC version that is in use, the server MUST either send a QUIC version negotiation packet if this is possible, or fail the connection otherwise.</p>
+<h2 id="rfc.section.6.2"><a href="#rfc.section.6.2">6.2.</a> <a href="#quic_parameters" id="quic_parameters">QUIC Extension</a></h2>
+<p id="rfc.section.6.2.p.1">QUIC defines an extension for use with TLS.  That extension defines transport-related parameters.  This provides integrity protection for these values.  Including these in the TLS handshake also make the values that a client sets available to a server one-round trip earlier than parameters that are carried in QUIC frames.  This document does not define that extension.</p>
+<h2 id="rfc.section.6.3"><a href="#rfc.section.6.3">6.3.</a> <a href="#source-address" id="source-address">Source Address Validation</a></h2>
+<p id="rfc.section.6.3.p.1">QUIC implementations describe a source address token.  This is an opaque blob that a server might provide to clients when they first use a given source address.  The client returns this token in subsequent messages as a return routeability check.  That is, the client returns this token to prove that it is able to receive packets at the source address that it claims.  This prevents the server from being used in packet reflection attacks.</p>
+<p id="rfc.section.6.3.p.2">A source address token is opaque and consumed only by the server.  Therefore it can be included in the TLS 1.3 pre-shared key identifier for 0-RTT handshakes.  Servers that use 0-RTT are advised to provide new pre-shared key identifiers after every handshake to avoid linkability of connections by passive observers.  Clients MUST use a new pre-shared key identifier for every connection that they initiate; if no pre-shared key identifier is available, then resumption is not possible.</p>
+<p id="rfc.section.6.3.p.3">A server that is under load might include a source address token in the cookie extension of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not include the ability to include a cookie in HelloRetryRequest.)</p>
+<h1 id="rfc.section.7"><a href="#rfc.section.7">7.</a> <a href="#security-considerations" id="security-considerations">Security Considerations</a></h1>
+<p id="rfc.section.7.p.1">There are likely to be some real clangers here eventually, but the current set of issues is well captured in the relevant sections of the main text.</p>
+<p id="rfc.section.7.p.2">Never assume that because it isn&#8217;t in the security considerations section it doesn&#8217;t affect security.  Most of this document does.</p>
+<h2 id="rfc.section.7.1"><a href="#rfc.section.7.1">7.1.</a> <a href="#packet-reflection-attack-mitigation" id="packet-reflection-attack-mitigation">Packet Reflection Attack Mitigation</a></h2>
+<p id="rfc.section.7.1.p.1">A small ClientHello that results in a large block of handshake messages from a server can be used in packet reflection attacks to amplify the traffic generated by an attacker.</p>
+<p id="rfc.section.7.1.p.2">Certificate caching <a href="#I-D.ietf-tls-cached-info">[I-D.ietf-tls-cached-info]</a> can reduce the size of the server&#8217;s handshake messages significantly.</p>
+<p id="rfc.section.7.1.p.3">A client SHOULD also pad <a href="#RFC7685">[RFC7685]</a> its ClientHello to at least 1024 octets (TBD: tune this value).  A server is less likely to generate a packet reflection attack if the data it sends is a small multiple of the data it receives.  A server SHOULD use a HelloRetryRequest if the size of the handshake messages it sends is likely to exceed the size of the ClientHello.</p>
+<h2 id="rfc.section.7.2"><a href="#rfc.section.7.2">7.2.</a> <a href="#useless" id="useless">Peer Denial of Service</a></h2>
+<p id="rfc.section.7.2.p.1">QUIC, TLS and HTTP/2 all contain a messages that have legitimate uses in some contexts, but that can be abused to cause a peer to expend processing resources without having any observable impact on the state of the connection.  If processing is disproportionately large in comparison to the observable effects on bandwidth or state, then this allows a peer to exhaust processing capacity without consequence.</p>
+<p id="rfc.section.7.2.p.2">While there are legitimate uses for some redundant packets, implementations SHOULD track redundant packets and treat excessive volumes of them as indicative of an attack.</p>
+<h1 id="rfc.section.8"><a href="#rfc.section.8">8.</a> <a href="#iana-considerations" id="iana-considerations">IANA Considerations</a></h1>
+<p id="rfc.section.8.p.1">This document has no IANA actions.  Yet.</p>
+<h1 id="rfc.references"><a href="#rfc.references">9.</a> References</h1>
+<h2 id="rfc.references.1"><a href="#rfc.references.1">9.1.</a> Normative References</h2>
 <table>
   <tbody>
     <tr>
@@ -735,15 +776,27 @@ li, p {
     </tr>
     <tr>
       <td class="reference">
+        <b id="RFC5116">[RFC5116]</b>
+      </td>
+      <td class="top"><a>McGrew, D.</a>, "<a href="http://tools.ietf.org/html/rfc5116">An Interface and Algorithms for Authenticated Encryption</a>", RFC 5116, DOI 10.17487/RFC5116, January 2008.</td>
+    </tr>
+    <tr>
+      <td class="reference">
         <b id="RFC7301">[RFC7301]</b>
       </td>
       <td class="top"><a>Friedl, S.</a>, <a>Popov, A.</a>, <a>Langley, A.</a> and <a>E. Stephan</a>, "<a href="http://tools.ietf.org/html/rfc7301">Transport Layer Security (TLS) Application-Layer Protocol Negotiation Extension</a>", RFC 7301, DOI 10.17487/RFC7301, July 2014.</td>
     </tr>
   </tbody>
 </table>
-<h2 id="rfc.references.2"><a href="#rfc.references.2">10.2.</a> Informative References</h2>
+<h2 id="rfc.references.2"><a href="#rfc.references.2">9.2.</a> Informative References</h2>
 <table>
   <tbody>
+    <tr>
+      <td class="reference">
+        <b id="I-D.ietf-tls-cached-info">[I-D.ietf-tls-cached-info]</b>
+      </td>
+      <td class="top"><a>Santesson, S.</a> and <a>H. Tschofenig</a>, "<a href="http://tools.ietf.org/html/draft-ietf-tls-cached-info-23">Transport Layer Security (TLS) Cached Information Extension</a>", Internet-Draft draft-ietf-tls-cached-info-23, May 2016.</td>
+    </tr>
     <tr>
       <td class="reference">
         <b id="RFC0793">[RFC0793]</b>
@@ -768,10 +821,16 @@ li, p {
       </td>
       <td class="top"><a>Belshe, M.</a>, <a>Peon, R.</a> and <a>M. Thomson</a>, "<a href="http://tools.ietf.org/html/rfc7540">Hypertext Transfer Protocol Version 2 (HTTP/2)</a>", RFC 7540, DOI 10.17487/RFC7540, May 2015.</td>
     </tr>
+    <tr>
+      <td class="reference">
+        <b id="RFC7685">[RFC7685]</b>
+      </td>
+      <td class="top"><a>Langley, A.</a>, "<a href="http://tools.ietf.org/html/rfc7685">A Transport Layer Security (TLS) ClientHello Padding Extension</a>", RFC 7685, DOI 10.17487/RFC7685, October 2015.</td>
+    </tr>
   </tbody>
 </table>
 <h1 id="rfc.appendix.A"><a href="#rfc.appendix.A">Appendix A.</a> <a href="#acknowledgments" id="acknowledgments">Acknowledgments</a></h1>
-<p id="rfc.section.A.p.1">Christian Huitema&#8217;s knowledge of QUIC is far better than my own.  This would be even more inaccurate and useless if not for his assistance.  This document has variously benefited from a long series of discussions with Ryan Hamilton, Jana Iyengar, Adam Langley, Roberto Peon, Ian Swett, and likely many others who are merely forgotten by a faulty meat computer.</p>
+<p id="rfc.section.A.p.1">Christian Huitema&#8217;s knowledge of QUIC is far better than my own.  This would be even more inaccurate and useless if not for his assistance.  This document has variously benefited from a long series of discussions with Jana Iyengar, Adam Langley, Roberto Peon, Eric Rescorla, Ian Swett, and likely many others who are merely forgotten by a faulty meat computer.</p>
 <h1 id="rfc.authors">
   <a href="#rfc.authors">Authors' Addresses</a>
 </h1>
