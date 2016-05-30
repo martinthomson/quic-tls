@@ -76,44 +76,40 @@ defined in [RFC2119].
 QUIC [I-D.tsvwg-quic-protocol] can be separated into several modules:
 
 1. The basic frame envelope describes the common packet layout.  This layer
-   includes connection identification, version negotiation, and includes the
-   indicators that allow the framing, public reset, and FEC modules to be
-   identified.
+   includes connection identification, version negotiation, and includes markers
+   that allow the framing and public reset to be identified.
 
-2. The public reset is an unprotected frame that allows an intermediary (an
+2. The public reset is an unprotected packet that allows an intermediary (an
    entity that is not part of the security context) to request the termination
    of a QUIC connection.
 
 3. Version negotiation frames are used to agree on a common version of QUIC to
    use.
 
-4. The forward error correction (FEC) module provides redundant entropy that
-   allows for frames to be repaired in event of loss.
-
-5. Framing comprises most of the QUIC protocol.  Framing provides a number of
+4. Framing comprises most of the QUIC protocol.  Framing provides a number of
    different types of frame, each with a specific purpose.  Framing supports
    frames for both congestion management and stream multiplexing.  Framing
    additionally provides a liveness testing capability (the PING frame).
 
-6. Encryption provides confidentiality and integrity protection for frames.  All
+5. Encryption provides confidentiality and integrity protection for frames.  All
    frames are protected based on keying material derived from the TLS connection
    running on stream 1.  Prior to this, data is protected with the 0-RTT keys.
 
-7. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
+6. Multiplexed streams are the primary payload of QUIC.  These provide reliable,
    in-order delivery of data and are used to carry the encryption handshake and
    transport parameters (stream 1), HTTP header fields (stream 3), and HTTP
    requests and responses.  Frames for managing multiplexing include those for
    creating and destroying streams as well as flow control and priority frames.
 
-8. Congestion management includes packet acknowledgment and other signal
+7. Congestion management includes packet acknowledgment and other signal
    required to ensure effective use of available link capacity.
 
-9. A complete TLS connection is run on stream 1.  This includes the entire TLS
+8. A complete TLS connection is run on stream 1.  This includes the entire TLS
    record layer.  As the TLS connection reaches certain states, keying material
    is provided to the QUIC encryption layer for protecting the remainder of the
    QUIC traffic.
 
-10. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
+9. HTTP mapping provides an adaptation to HTTP that is based on HTTP/2.
 
 The relative relationship of these components are pictorally represented in
 {{quic-structure}}.
@@ -124,10 +120,8 @@ The relative relationship of these components are pictorally represented in
    +-----+------+------------+
    |  Streams   | Congestion |
    +------------+------------+
-   |        Frames           |
-   +            +------------+
-   |            |    FEC     +--------+---------+
-   +   +--------+------------+ Public | Version |
+   |         Frames          +--------+---------+
+   +   +---------------------+ Public | Version |
    |   |     Encryption      | Reset  |  Nego.  |
    +---+---------------------+--------+---------+
    |                   Envelope                 |
@@ -207,8 +201,8 @@ However, these frames are not authenticated or confidentiality protected.
 {{pre-handshake}} covers some of the implications of this design and limitations
 on QUIC operation during this phase.
 
-Once complete, QUIC frames and forward error control (FEC) messages are
-protected using QUIC record protection, see {{record-protection}}.
+Once complete, QUIC frames are protected using QUIC record protection, see
+{{record-protection}}.
 
 
 ## Handshake and Setup Sequence
@@ -238,14 +232,14 @@ re-sent in case of loss and that they can be ordered correctly.
                             <--------
                         1-RTT Key -> @C
 
-                                             QUIC Frames/FEC @C
+                                                 QUIC Frames @C
                             <--------
 @B QUIC STREAM Frame(s) <1>:
      (end_of_early_data <1>)
      {Finished}
                             -------->
 
-@C QUIC Frames/FEC          <------->        QUIC Frames/FEC @C
+@C QUIC Frames              <------->            QUIC Frames @C
 ~~~
 {: #quic-tls-handshake title="QUIC over TLS Handshake"}
 
@@ -416,7 +410,7 @@ from which they are derived:
 
 0-RTT keys are those keys that are used in resumed connections prior to the
 completion of the TLS handshake.  Data sent using 0-RTT keys might be replayed
-and so has some restructions on its use, see {{using-early-data}}.  0-RTT keys
+and so has some restrictions on its use, see {{using-early-data}}.  0-RTT keys
 are used after sending or receiving a ClientHello.
 
 1-RTT keys are used after the TLS handshake completes.  There are potentially
@@ -576,31 +570,26 @@ messages.
 Receiving unprotected `STREAM` frames for other streams MUST be treated as a
 fatal error.
 
-Issue:
-
-: Is it possible to send a `STREAM` frame for stream 1 that contains no data?
-  Is this detectable?  Does it comprise an attack?  For instance, could an
-  attacker inject a frame that appears to contain TLS application data?
-
 
 ### ACK Frames
 
-`ACK` frames are permitted prior to the handshake being complete.  However, an
-unauthenticated `ACK` frame can only be used to obtain NACK ranges.  Timestamps
-MUST NOT be included in an unprotected ACK frame, since these might be modified
-by an attacker with the intent of altering congestion control response.
-Information on FEC-revived packets is redundant, since use of FEC in this phase
-is prohibited.
+`ACK` frames are permitted prior to the handshake being complete.  Information
+learned from `ACK` frames cannot be entirely relied upon, since an attacker is
+able to inject these packets.  Timing and packet retransmission information from
+`ACK` frames is critical to the functioning of the protocol, but these frames
+might be spoofed or altered.
 
-`ACK` frames MAY be sent a second time once record protection is enabled.  Once
-protected, timestamps can be included.
+Endpoints MUST NOT use an unprotected `ACK` frame to acknowledge data that was
+protected by 0-RTT or 1-RTT keys.  An endpoint MUST ignore an unprotected `ACK`
+frame if it claims to acknowledge data that was protected data.  Such an
+acknowledgement can only serve as a denial of service, since an endpoint that
+can read protected data is always permitted to send protected data.
 
-Editor's Note:
-
-: This prohibition might be a little too strong, but this is the only obviously
-  safe option.  If the amount of damage that an attacker can do by modifying
-  timestamps is limited, then it might be OK to permit the inclusion of
-  timestamps.  Note that an attacker need not be on-path to inject an ACK.
+An endpoint SHOULD use data from unprotected or 0-RTT-protected `ACK` frames
+only during the initial handshake and while they have insufficient information
+from 1-RTT-protected `ACK` frames.  Once sufficient information has been
+obtained from protected messages, information obtained from less reliable
+sources can be discarded.
 
 
 ### WINDOW_UPDATE Frames
@@ -608,17 +597,11 @@ Editor's Note:
 `WINDOW_UPDATE` frames MUST NOT be sent unprotected.
 
 Though data is exchanged on stream 1, the initial flow control window is is
-sufficiently large to allow the TLS handshake to complete.  However, this limits
-the maximum size of the TLS handshake.  This is unlikely to cause issues unless
-a server or client provides an abnormally large certificate chain.
+sufficiently large to allow the TLS handshake to complete.  This limits the
+maximum size of the TLS handshake and would prevent a server or client from
+using an abnormally large certificate chain.
 
 Stream 1 is exempt from the connection-level flow control window.
-
-
-### FEC Packets
-
-FEC packets MUST NOT be sent prior to completing the TLS handshake.  Endpoints
-MUST treat receipt of an unprotected FEC packet as a fatal error.
 
 
 ### Denial of Service with Unprotected Packets ##
@@ -777,7 +760,7 @@ that a server might provide to clients when they first use a given source
 address.  The client returns this token in subsequent messages as a return
 routeability check.  That is, the client returns this token to prove that it is
 able to receive packets at the source address that it claims.  This prevents the
-server from being used in packet reflection attacks.
+server from being used in packet reflection attacks (see {{reflection}}).
 
 A source address token is opaque and consumed only by the server.  Therefore it
 can be included in the TLS 1.3 pre-shared key identifier for 0-RTT handshakes.
@@ -792,6 +775,27 @@ extension of a HelloRetryRequest. (Note: the current version of TLS 1.3 does not
 include the ability to include a cookie in HelloRetryRequest.)
 
 
+## Priming 0-RTT
+
+QUIC uses TLS without modification.  Therefore, it is possible to use a
+pre-shared key that was obtained in a TLS connection over TCP to enable 0-RTT in
+QUIC.  Similarly, QUIC can provide a pre-shared key that can be used to enable
+0-RTT in TCP.
+
+All the restrictions on the use of 0-RTT apply, and the certificate MUST be
+considered valid for both connections, which will use different protocol stacks
+and could use different port numbers.  For instance, HTTP/1.1 and HTTP/2 operate
+over TLS and TCP, whereas QUIC operates over UDP.
+
+Source address validation is not completely portable between different protocol
+stacks.  Even if the source IP address remains constant, the port number is
+likely to be different.  Packet reflection attacks are still possible in this
+situation, though the set of hosts that can initiate these attacks is greatly
+reduced.  A server might choose to avoid source address validation for such a
+connection, or allow an increase to the amount of data that it sends toward the
+client without source validation.
+
+
 # Security Considerations
 
 There are likely to be some real clangers here eventually, but the current set
@@ -801,7 +805,7 @@ Never assume that because it isn't in the security considerations section it
 doesn't affect security.  Most of this document does.
 
 
-## Packet Reflection Attack Mitigation
+## Packet Reflection Attack Mitigation {#reflection}
 
 A small ClientHello that results in a large block of handshake messages from a
 server can be used in packet reflection attacks to amplify the traffic generated
@@ -810,11 +814,11 @@ by an attacker.
 Certificate caching [I-D.ietf-tls-cached-info] can reduce the size of the
 server's handshake messages significantly.
 
-A client SHOULD also pad [RFC7685] its ClientHello to at least 1024 octets (TBD:
-tune this value).  A server is less likely to generate a packet reflection
-attack if the data it sends is a small multiple of the data it receives.  A
-server SHOULD use a HelloRetryRequest if the size of the handshake messages it
-sends is likely to exceed the size of the ClientHello.
+A client SHOULD also pad [RFC7685] its ClientHello to at least 1024 octets
+(TODO: tune this value).  A server is less likely to generate a packet
+reflection attack if the data it sends is a small multiple of the data it
+receives.  A server SHOULD use a HelloRetryRequest if the size of the handshake
+messages it sends is likely to exceed the size of the ClientHello.
 
 
 ## Peer Denial of Service {#useless}
@@ -823,12 +827,24 @@ QUIC, TLS and HTTP/2 all contain a messages that have legitimate uses in some
 contexts, but that can be abused to cause a peer to expend processing resources
 without having any observable impact on the state of the connection.  If
 processing is disproportionately large in comparison to the observable effects
-on bandwidth or state, then this allows a peer to exhaust processing capacity
-without consequence.
+on bandwidth or state, then this could allow a malicious peer to exhaust
+processing capacity without consequence.
+
+QUIC prohibits the sending of empty `STREAM` frames unless they are marked with
+the FIN bit.  This prevents `STREAM` frames from being sent that only waste
+effort.
+
+TLS records SHOULD always contain at least one octet of a handshake messages or
+alert.  Records containing only padding are permitted during the handshake, but
+an excessive number might be used to generate unnecessary work.  Once the TLS
+handshake is complete, endpoints SHOULD NOT send TLS application data records
+unless it is to hide the length of QUIC records.  QUIC packet protection does
+not include any allowance for padding; padded TLS application data records can
+be used to mask the length of QUIC frames.
 
 While there are legitimate uses for some redundant packets, implementations
-SHOULD track redundant packets and treat excessive volumes of them as indicative
-of an attack.
+SHOULD track redundant packets and treat excessive volumes of any non-productive
+packets as indicative of an attack.
 
 
 # IANA Considerations
