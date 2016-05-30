@@ -1,6 +1,6 @@
-# Porting QUIC to Transport Layer Security (TLS)
+# Using Transport Layer Security (TLS) to Secure QUIC
 
-This is the working area for the Individual internet-draft, "Porting QUIC to Transport Layer Security (TLS)".
+This is the working area for the Individual internet-draft, "Using Transport Layer Security (TLS) to Secure QUIC".
 
 * [Editor's copy](https://martinthomson.github.io/quic-tls/)
 * [Individual Draft] (https://tools.ietf.org/html/draft-thomson-quic-tls)
