@@ -604,7 +604,7 @@ using an abnormally large certificate chain.
 Stream 1 is exempt from the connection-level flow control window.
 
 
-### Denial of Service with Unprotected Packets ##
+### Denial of Service with Unprotected Packets
 
 Accepting unprotected - specifically unauthenticated - packets presents a denial
 of service risk to endpoints.  An attacker that is able to inject unprotected
