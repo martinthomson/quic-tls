@@ -226,7 +226,7 @@ re-sent in case of loss and that they can be ordered correctly.
    Replayable QUIC Frames <any stream>
                             -------->
 
-                                      QUIC STREAM Frame <1>: @B/A
+                                      QUIC STREAM Frame <1>: @A
                                                ServerHello
                                       {Handshake Messages}
                             <--------
@@ -256,10 +256,16 @@ If 0-RTT is not possible, then the client does not send frames protected by the
 0-RTT key (@B).  The only key transition on the client is from cleartext (@A) to
 1-RTT protection (@C).
 
-If 0-RTT data is not accepted by the server, then the server sends its handshake
-messages without protection (@A).  The client still transitions from @A to @B,
-but it can stop sending 0-RTT data and progress immediately to 1-RTT data when
-it receives a cleartext ServerHello.
+The server sends its handshake messages without protection (@A).  The server
+transitions from no protection (@A) to full 1-RTT protection (@C) after it sends
+the last of its handshake messages.
+
+Some TLS handshake messages are protected by the TLS handshake record
+protection.  However, keys derived at this stage are not exported for use in
+QUIC.  QUIC frames from the server are sent in the clear until the final
+transition to 1-RTT keys.  The client still transitions from @A to @B, but it
+can stop sending 0-RTT data and progress immediately to 1-RTT data when it
+receives the server handshake messages.
 
 
 # QUIC Record Protection {#record-protection}
@@ -293,17 +299,13 @@ The following transitions are defined:
 * The client transitions to using 0-RTT keys after sending the ClientHello.
   This causes the KEY_PHASE bit on packets sent by the client to be set to 1.
 
-* The server transitions to using 0-RTT keys before sending the ServerHello, but
-  only if the early data from the client is accepted.  This transition causes
-  the KEY_PHASE bit on packets sent by the server to be set to 1.  If the server
-  rejects 0-RTT data, the server's handshake messages are sent without
-  QUIC-level record protection with a KEY_PHASE of 0.  TLS handshake messages
-  will still be protected by TLS record protection based on the TLS handshake
-  traffic keys.
+* The server sends messages in the clear until the TLS handshake completes.  The
+  KEY_PHASE bit on packets sent by the server is set to 0 when the handshake is
+  in progress.  TLS handshake messages will still be protected by TLS record
+  protection based on the TLS handshake traffic keys.
 
 * The server transitions to using 1-RTT keys after sending its Finished message.
-  This causes the KEY_PHASE bit to be set to 0 if early data was accepted, and 1
-  if the server rejected early data.
+  This causes the KEY_PHASE bit on packets sent by the server to be set to 1.
 
 * The client transitions to 1-RTT keys after sending its Finished message.
   Subsequent messages from the client will then have a KEY_PHASE of 0 if 0-RTT
@@ -329,9 +331,11 @@ than the lowest sequence number used for the new key, or when it determines that
 reordering of those packets is unlikely.  0-RTT keys SHOULD be retained until
 the handshake is complete.
 
-The KEY_PHASE bit does not directly indicate which keys are in use.  Depending
-on whether 0-RTT data was sent and accepted, packets protected with keys derived
-from the same secret might be marked with different KEY_PHASE values.
+The KEY_PHASE bit does not directly indicate which keys are in use; it is used
+to mark transitions from one key to the next.  If a client does not attempt
+0-RTT, then packets protected with the same keys will have the same KEY_PHASE
+bit; if the client attempts 0-RTT, then packets protected with the same keys
+will be marked with different KEY_PHASE values.
 
 
 ### Retransmission of TLS Handshake Messages
@@ -356,7 +360,7 @@ Once the TLS handshake is complete, the KEY_PHASE bit allows for the processing
 of messages without having to receive the TLS KeyUpdate message that triggers
 the key update.  This allows endpoints to start using updated keys immediately
 without the concern that a lost KeyUpdate will cause their messages to be
-indecipherable to their peer..
+indecipherable to their peer.
 
 An endpoint MUST NOT initiate more than one key update at a time.  A new key
 update cannot be sent until the endpoint has received a matching KeyUpdate
