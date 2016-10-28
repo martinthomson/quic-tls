@@ -5,8 +5,8 @@
 Network Working Group                                         M. Thomson
 Internet-Draft                                                   Mozilla
 Intended status: Standards Track                             R. Hamilton
-Expires: February 10, 2017                                        Google
-                                                          August 9, 2016
+Expires: May 1, 2017                                              Google
+                                                        October 28, 2016
 
 
           Using Transport Layer Security (TLS) to Secure QUIC
@@ -32,7 +32,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on February 10, 2017.
+   This Internet-Draft will expire on May 1, 2017.
 
 Copyright Notice
 
@@ -53,9 +53,9 @@ Copyright Notice
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 1]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 1]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
 Table of Contents
@@ -109,9 +109,9 @@ Table of Contents
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 2]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 2]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    established and secured within a single round trip; on subsequent
@@ -165,9 +165,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 3]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 3]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    7.  Congestion management includes packet acknowledgment and other
@@ -221,9 +221,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 4]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 4]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    A simplified TLS 1.3 handshake with 0-RTT application data is shown
@@ -277,9 +277,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 5]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 5]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    Prior to the completion of the TLS handshake, QUIC frames can be
@@ -311,7 +311,7 @@ Internet-Draft                QUIC over TLS                  August 2016
       Replayable QUIC Frames <any stream>
                                -------->
 
-                                         QUIC STREAM Frame <1>: @B/A
+                                         QUIC STREAM Frame <1>: @A
                                                   ServerHello
                                          {Handshake Messages}
                                <--------
@@ -333,9 +333,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017               [Page 6]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 6]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    o  "<" and ">" enclose stream numbers.
@@ -353,11 +353,17 @@ Internet-Draft                QUIC over TLS                  August 2016
    protected by the 0-RTT key (@B).  The only key transition on the
    client is from cleartext (@A) to 1-RTT protection (@C).
 
-   If 0-RTT data is not accepted by the server, then the server sends
-   its handshake messages without protection (@A).  The client still
-   transitions from @A to @B, but it can stop sending 0-RTT data and
-   progress immediately to 1-RTT data when it receives a cleartext
-   ServerHello.
+   The server sends its handshake messages without protection (@A).  The
+   server transitions from no protection (@A) to full 1-RTT protection
+   (@C) after it sends the last of its handshake messages.
+
+   Some TLS handshake messages are protected by the TLS handshake record
+   protection.  However, keys derived at this stage are not exported for
+   use in QUIC.  QUIC frames from the server are sent in the clear until
+   the final transition to 1-RTT keys.  The client still transitions
+   from @A to @B, but it can stop sending 0-RTT data and progress
+   immediately to 1-RTT data when it receives the server handshake
+   messages.
 
 4.  QUIC Record Protection
 
@@ -380,20 +386,19 @@ Internet-Draft                QUIC over TLS                  August 2016
    messages, the KEY_PHASE bit in the public flags is toggled.  The
    KEY_PHASE bit on unencrypted messages is 0.
 
+
+
+
+Thomson & Hamilton         Expires May 1, 2017                  [Page 7]
+
+Internet-Draft                QUIC over TLS                 October 2016
+
+
    The KEY_PHASE bit on the public flags is the most significant bit
    (0x80).
 
    The KEY_PHASE bit allows a recipient to detect a change in keying
    material without needing to receive the message that triggers the
-
-
-
-
-Thomson & Hamilton      Expires February 10, 2017               [Page 7]
-
-Internet-Draft                QUIC over TLS                  August 2016
-
-
    change.  This avoids head-of-line blocking around transitions between
    keys without relying on trial decryption.
 
@@ -403,18 +408,15 @@ Internet-Draft                QUIC over TLS                  August 2016
       ClientHello.  This causes the KEY_PHASE bit on packets sent by the
       client to be set to 1.
 
-   o  The server transitions to using 0-RTT keys before sending the
-      ServerHello, but only if the early data from the client is
-      accepted.  This transition causes the KEY_PHASE bit on packets
-      sent by the server to be set to 1.  If the server rejects 0-RTT
-      data, the server's handshake messages are sent without QUIC-level
-      record protection with a KEY_PHASE of 0.  TLS handshake messages
+   o  The server sends messages in the clear until the TLS handshake
+      completes.  The KEY_PHASE bit on packets sent by the server is set
+      to 0 when the handshake is in progress.  TLS handshake messages
       will still be protected by TLS record protection based on the TLS
       handshake traffic keys.
 
    o  The server transitions to using 1-RTT keys after sending its
-      Finished message.  This causes the KEY_PHASE bit to be set to 0 if
-      early data was accepted, and 1 if the server rejected early data.
+      Finished message.  This causes the KEY_PHASE bit on packets sent
+      by the server to be set to 1.
 
    o  The client transitions to 1-RTT keys after sending its Finished
       message.  Subsequent messages from the client will then have a
@@ -443,17 +445,17 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-
-
-Thomson & Hamilton      Expires February 10, 2017               [Page 8]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 8]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
-   The KEY_PHASE bit does not directly indicate which keys are in use.
-   Depending on whether 0-RTT data was sent and accepted, packets
-   protected with keys derived from the same secret might be marked with
-   different KEY_PHASE values.
+   The KEY_PHASE bit does not directly indicate which keys are in use;
+   it is used to mark transitions from one key to the next.  If a client
+   does not attempt 0-RTT, then packets protected with the same keys
+   will have the same KEY_PHASE bit; if the client attempts 0-RTT, then
+   packets protected with the same keys will be marked with different
+   KEY_PHASE values.
 
 4.1.1.  Retransmission of TLS Handshake Messages
 
@@ -480,7 +482,7 @@ Internet-Draft                QUIC over TLS                  August 2016
    message that triggers the key update.  This allows endpoints to start
    using updated keys immediately without the concern that a lost
    KeyUpdate will cause their messages to be indecipherable to their
-   peer..
+   peer.
 
    An endpoint MUST NOT initiate more than one key update at a time.  A
    new key update cannot be sent until the endpoint has received a
@@ -499,11 +501,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-
-
-Thomson & Hamilton      Expires February 10, 2017               [Page 9]
+Thomson & Hamilton         Expires May 1, 2017                  [Page 9]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
       Initiating Peer                    Responding Peer
@@ -557,9 +557,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 10]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 10]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    1-RTT keys are used after the TLS handshake completes.  There are
@@ -613,9 +613,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 11]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 11]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    The associated data, A, for the AEAD is an empty sequence.
@@ -669,9 +669,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 12]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 12]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
       connection that is hosted on stream 1.  This sequence number is
@@ -725,9 +725,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 13]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 13]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    o  Protected packets can either be discarded or saved and later used
@@ -781,9 +781,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 14]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 14]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    This limits the maximum size of the TLS handshake and would prevent a
@@ -837,9 +837,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 15]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 15]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
 5.2.  Use of 0-RTT Keys
@@ -893,9 +893,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 16]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 16]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    valid Finished message and any authentication of the peer.  If
@@ -949,9 +949,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 17]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 17]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    Servers SHOULD select an application protocol based solely on the
@@ -1005,9 +1005,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 18]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 18]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    All the restrictions on the use of 0-RTT apply, and the certificate
@@ -1061,9 +1061,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 19]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 19]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    this could allow a malicious peer to exhaust processing capacity
@@ -1096,8 +1096,8 @@ Internet-Draft                QUIC over TLS                  August 2016
 
    [I-D.ietf-tls-tls13]
               Rescorla, E., "The Transport Layer Security (TLS) Protocol
-              Version 1.3", draft-ietf-tls-tls13-14 (work in progress),
-              July 2016.
+              Version 1.3", draft-ietf-tls-tls13-18 (work in progress),
+              October 2016.
 
    [I-D.tsvwg-quic-protocol]
               Hamilton, R., Iyengar, J., Swett, I., and A. Wilk, "QUIC:
@@ -1117,9 +1117,9 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 20]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 20]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    [RFC7301]  Friedl, S., Popov, A., Langley, A., and E. Stephan,
@@ -1173,9 +1173,9 @@ Authors' Addresses
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 21]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 21]
 
-Internet-Draft                QUIC over TLS                  August 2016
+Internet-Draft                QUIC over TLS                 October 2016
 
 
    Martin Thomson
@@ -1229,4 +1229,4 @@ Internet-Draft                QUIC over TLS                  August 2016
 
 
 
-Thomson & Hamilton      Expires February 10, 2017              [Page 22]
+Thomson & Hamilton         Expires May 1, 2017                 [Page 22]
