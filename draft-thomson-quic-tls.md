@@ -155,7 +155,6 @@ A simplified TLS 1.3 handshake with 0-RTT application data is shown in
     Client                                             Server
 
     ClientHello
-   (Finished)
    (0-RTT Application Data)
    (end_of_early_data)        -------->
                                                   ServerHello
