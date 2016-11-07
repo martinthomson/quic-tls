@@ -389,7 +389,7 @@ As shown in {{quic-tls-handshake}} and {{ex-key-update}}, there is never a
 situation where there are more than two different sets of keying material that
 might be received by a peer.
 
-A server cannot initiate a key update until it has received the client's
+A server MUST NOT initiate a key update until it has received the client's
 Finished message.  Otherwise, packets protected by the updated keys could be
 confused for retransmissions of handshake messages.  A client cannot initiate a
 key update until it has received an acknowledgment that its Finished message has
@@ -399,6 +399,26 @@ Note:
 
 : This models the key changes in the handshake as a key update initiated by the
   server, with the Finished message in the place of KeyUpdate.
+
+Alternative design:
+
+: Awaiting acknowledgment of the KeyUpdate before initiating another KeyUpdate
+  is not strictly necessary.  Each side can detect that a KeyUpdate has occurred
+  by noticing a change in the KEY_PHASE bit.  Detecting the change in keys is
+  sufficient to know that the peer has updated keys.  This is the case even if
+  that action was not directly as a result of receiving a KeyUpdate message,
+  when the peer decides to update keys on its own.
+
+: The trick for handling the handshake in this design is that endpoints need to
+  wait until they successfully decrypt packets with 1-RTT keys.  At that point,
+  they can be sure that their peer has installed the correct 1-RTT keys.
+  Cleartext (or 0-RTT) keys can be immediately disabled and it is possible to
+  initiate a key update as desired.
+
+: This creates what is - in effect - an implicit acknowledgment of the TLS
+  handshake.  This is not a substitute for ACK frames, which are still necessary
+  since they contain information critical to the functioning of loss recovery
+  and congestion control.
 
 
 ## QUIC Key Expansion {#key-expansion}
