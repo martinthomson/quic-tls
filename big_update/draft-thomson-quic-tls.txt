@@ -5,8 +5,8 @@
 Network Working Group                                         M. Thomson
 Internet-Draft                                                   Mozilla
 Intended status: Standards Track                             R. Hamilton
-Expires: May 14, 2017                                             Google
-                                                       November 10, 2016
+Expires: May 17, 2017                                             Google
+                                                       November 13, 2016
 
 
           Using Transport Layer Security (TLS) to Secure QUIC
@@ -32,7 +32,7 @@ Status of This Memo
    time.  It is inappropriate to use Internet-Drafts as reference
    material or to cite them other than as "work in progress."
 
-   This Internet-Draft will expire on May 14, 2017.
+   This Internet-Draft will expire on May 17, 2017.
 
 Copyright Notice
 
@@ -53,7 +53,7 @@ Copyright Notice
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 1]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 1]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -109,7 +109,7 @@ Table of Contents
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 2]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 2]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -165,7 +165,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 3]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 3]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -221,7 +221,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 4]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 4]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -277,7 +277,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 5]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 5]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -333,7 +333,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 6]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 6]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -389,7 +389,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 7]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 7]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -445,7 +445,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 8]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 8]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -501,7 +501,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                  [Page 9]
+Thomson & Hamilton        Expires May 17, 2017                  [Page 9]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -557,15 +557,14 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 10]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 10]
 
 Internet-Draft                QUIC over TLS                November 2016
 
 
    QUIC uses the Pseudo-Random Function (PRF) hash function negotiated
    by TLS for key derivation.  For example, if TLS is using the
-   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the SHA-256 hash function is
-   used.
+   TLS_AES_128_GCM_SHA256, the SHA-256 hash function is used.
 
 4.2.1.  0-RTT Secret
 
@@ -610,15 +609,15 @@ Internet-Draft                QUIC over TLS                November 2016
    the HKDF-Expand-Label function defined in Section 7.1 of
    [I-D.ietf-tls-tls13], using the PRF hash function negotiated by TLS.
    The replacement secret is derived using the existing Secret, a Label
+   of "QUIC client 1-RTT Secret" for the client and "QUIC server 1-RTT
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 11]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 11]
 
 Internet-Draft                QUIC over TLS                November 2016
 
 
-   of "QUIC client 1-RTT Secret" for the client and "QUIC server 1-RTT
    Secret", an empty HashValue, and the same output Length as the hash
    function selected by TLS for its PRF.
 
@@ -669,7 +668,8 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 12]
+
+Thomson & Hamilton        Expires May 17, 2017                 [Page 12]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -694,8 +694,7 @@ Internet-Draft                QUIC over TLS                November 2016
    The Authentication Encryption with Associated Data (AEAD) [RFC5116]
    function used for QUIC packet protection is AEAD that is negotiated
    for use with the TLS connection.  For example, if TLS is using the
-   TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM
-   function is used.
+   TLS_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.
 
    Regular QUIC packets are protected by an AEAD [RFC5116].  Version
    negotiation and public reset packets are not protected.
@@ -725,7 +724,8 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 13]
+
+Thomson & Hamilton        Expires May 17, 2017                 [Page 13]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -781,7 +781,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 14]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 14]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -837,7 +837,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 15]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 15]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -893,7 +893,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 16]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 16]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -949,7 +949,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 17]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 17]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1005,7 +1005,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 18]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 18]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1061,7 +1061,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 19]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 19]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1117,7 +1117,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 20]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 20]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1173,7 +1173,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 21]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 21]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1229,7 +1229,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 22]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 22]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1285,7 +1285,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 23]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 23]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1341,7 +1341,7 @@ Internet-Draft                QUIC over TLS                November 2016
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 24]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 24]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1397,7 +1397,7 @@ Appendix A.  Acknowledgments
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 25]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 25]
 
 Internet-Draft                QUIC over TLS                November 2016
 
@@ -1453,4 +1453,4 @@ Authors' Addresses
 
 
 
-Thomson & Hamilton        Expires May 14, 2017                 [Page 26]
+Thomson & Hamilton        Expires May 17, 2017                 [Page 26]
