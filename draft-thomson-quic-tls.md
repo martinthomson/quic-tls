@@ -391,8 +391,8 @@ as the basis of its key schedule are obtained using TLS exporters (see Section
 7.3.3 of {{!I-D.ietf-tls-tls13}}).
 
 QUIC uses the Pseudo-Random Function (PRF) hash function negotiated by TLS for
-key derivation.  For example, if TLS is using the
-TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the SHA-256 hash function is used.
+key derivation.  For example, if TLS is using the TLS_AES_128_GCM_SHA256, the
+SHA-256 hash function is used.
 
 
 ### 0-RTT Secret
@@ -511,8 +511,8 @@ writing.
 
 The Authentication Encryption with Associated Data (AEAD) {{!RFC5116}} function
 used for QUIC packet protection is AEAD that is negotiated for use with the TLS
-connection.  For example, if TLS is using the
-TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256, the AEAD_AES_128_GCM function is used.
+connection.  For example, if TLS is using the TLS_AES_128_GCM_SHA256, the
+AEAD_AES_128_GCM function is used.
 
 Regular QUIC packets are protected by an AEAD {{!RFC5116}}.  Version negotiation
 and public reset packets are not protected.
