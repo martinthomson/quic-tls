@@ -284,7 +284,7 @@ li, p {
 <link href="#rfc.section.4.2.3" rel="Chapter" title="4.2.3 Packet Protection Key and IV"/>
 <link href="#rfc.section.4.3" rel="Chapter" title="4.3 QUIC AEAD Usage"/>
 <link href="#rfc.section.4.4" rel="Chapter" title="4.4 Key Update"/>
-<link href="#rfc.section.4.5" rel="Chapter" title="4.5 Packet Number Reconstruction"/>
+<link href="#rfc.section.4.5" rel="Chapter" title="4.5 Packet Numbers"/>
 <link href="#rfc.section.5" rel="Chapter" title="5 Pre-handshake QUIC Messages"/>
 <link href="#rfc.section.5.1" rel="Chapter" title="5.1 Unprotected Frames Prior to Handshake Completion"/>
 <link href="#rfc.section.5.1.1" rel="Chapter" title="5.1.1 STREAM Frames"/>
@@ -391,7 +391,7 @@ li, p {
 <li>4.2.3.   <a href="#rfc.section.4.2.3">Packet Protection Key and IV</a></li>
 </ul><li>4.3.   <a href="#rfc.section.4.3">QUIC AEAD Usage</a></li>
 <li>4.4.   <a href="#rfc.section.4.4">Key Update</a></li>
-<li>4.5.   <a href="#rfc.section.4.5">Packet Number Reconstruction</a></li>
+<li>4.5.   <a href="#rfc.section.4.5">Packet Numbers</a></li>
 </ul><li>5.   <a href="#rfc.section.5">Pre-handshake QUIC Messages</a></li>
 <ul><li>5.1.   <a href="#rfc.section.5.1">Unprotected Frames Prior to Handshake Completion</a></li>
 <ul><li>5.1.1.   <a href="#rfc.section.5.1.1">STREAM Frames</a></li>
@@ -642,7 +642,7 @@ li, p {
 <p id="rfc.section.4.3.p.2">Regular QUIC packets are protected by an AEAD <a href="#RFC5116">[RFC5116]</a>.  Version negotiation and public reset packets are not protected.</p>
 <p id="rfc.section.4.3.p.3">Once TLS has provided a key, the contents of regular QUIC packets immediately after any TLS messages have been sent are protected by the AEAD selected by TLS.</p>
 <p id="rfc.section.4.3.p.4">The key, K, for the AEAD is either the Client Write Key or the Server Write Key, derived as defined in <a href="#key-expansion">Section 4.2</a>.</p>
-<p id="rfc.section.4.3.p.5">The nonce, N, for the AEAD is formed by combining either the Client Write IV or Server Write IV with packet numbers.  The 64 bits of the reconstructed QUIC packet number (see <a href="#packet-number">Section 4.5</a>) in network byte order is left-padded with zeros to the N_MAX parameter of the AEAD (see Section 4 of <a href="#RFC5116">[RFC5116]</a>).  The exclusive OR of the padded packet number and the IV forms the AEAD nonce.</p>
+<p id="rfc.section.4.3.p.5">The nonce, N, for the AEAD is formed by combining either the Client Write IV or Server Write IV with packet numbers.  The 64 bits of the reconstructed QUIC packet number in network byte order is left-padded with zeros to the N_MAX parameter of the AEAD (see Section 4 of <a href="#RFC5116">[RFC5116]</a>).  The exclusive OR of the padded packet number and the IV forms the AEAD nonce.</p>
 <p id="rfc.section.4.3.p.6">The associated data, A, for the AEAD is an empty sequence.</p>
 <p id="rfc.section.4.3.p.7">The input plaintext, P, for the AEAD is the contents of the QUIC frame following the packet number, as described in <a href="#I-D.hamilton-quic-transport-protocol">[I-D.hamilton-quic-transport-protocol]</a>.</p>
 <p id="rfc.section.4.3.p.8">The output ciphertext, C, of the AEAD is transmitted in place of P.</p>
@@ -672,21 +672,11 @@ li, p {
 <p class="figure">Figure 4: Key Update</p>
 <p id="rfc.section.4.4.p.8">As shown in <a href="#quic-tls-handshake">Figure 3</a> and <a href="#ex-key-update">Figure 4</a>, there is never a situation where there are more than two different sets of keying material that might be received by a peer.  Once both sending and receiving keys have been updated,</p>
 <p id="rfc.section.4.4.p.9">A server cannot initiate a key update until it has received the client&#8217;s Finished message.  Otherwise, packets protected by the updated keys could be confused for retransmissions of handshake messages.  A client cannot initiate a key update until all of its handshake messages have been acknowledged by the server.</p>
-<h2 id="rfc.section.4.5"><a href="#rfc.section.4.5">4.5.</a> <a href="#packet-number" id="packet-number">Packet Number Reconstruction</a></h2>
-<p id="rfc.section.4.5.p.1">Each endpoint maintains a 64-bit packet number that is incremented with every packet that it sends.  Retransmissions use new packet numbers (and are therefore encrypted differently).  The least significant 8-, 16-, 32-, or 48-bits of this number is encoded in the QUIC packet number field in every packet.</p>
-<p id="rfc.section.4.5.p.2">Each endpoint maintains a similar value for packets that it receives.  The highest received packet number is updated as it receives and successfully decrypts packets.  It also maintains a view of which packets it has successfully received.</p>
-<p id="rfc.section.4.5.p.3">An endpoint recovers the packet number using the least significant bits from packets it receives.  A simple scheme centers a window around the packet number of the last packet to be successfully decrypted plus one.  The predicted packet number is in the range centered on that value.  by one and finding the packet number of an incoming packet to be within a range centered on that value.</p>
-<p id="rfc.section.4.5.p.4">A more sophisticated algorithm first checks if the corresponding packet number smaller than the most recent has been received; if it has, then the packet number must be higher than the most recent packet.  Otherwise, the simpler scheme can be used.</p>
-<p/>
-
-<dl>
-  <dt>Note:</dt>
-  <dd style="margin-left: 8">QUIC has a single, contiguous packet number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.  The sequence number restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).</dd>
-  <dt></dt>
-  <dd style="margin-left: 8">QUIC does not assume a reliable transport and is therefore required to handle attacks where packets are dropped in other ways.</dd>
-</dl>
-<p id="rfc.section.4.5.p.6">The packet number is not reset and it is not permitted to go higher than its maximum value of 2^64-1.  This establishes a hard limit on the number of packets that can be sent.  Before this limit is reached, some AEAD functions have limits for how many packets can be encrypted under the same key and IV (see for example <a href="#AEBounds">[AEBounds]</a>).  An endpoint MUST initiate a key update (<a href="#key-update">Section 4.4</a>) prior to exceeding any limit set for the AEAD that is in use.</p>
-<p id="rfc.section.4.5.p.7">TLS maintains a separate sequence number that is used for record protection on the connection that is hosted on stream 1.  This sequence number is reset according to the rules in the TLS protocol.</p>
+<h2 id="rfc.section.4.5"><a href="#rfc.section.4.5">4.5.</a> <a href="#packet-number" id="packet-number">Packet Numbers</a></h2>
+<p id="rfc.section.4.5.p.1">QUIC has a single, contiguous packet number space.  In comparison, TLS restarts its sequence number each time that record protection keys are changed.  The sequence number restart in TLS ensures that a compromise of the current traffic keys does not allow an attacker to truncate the data that is sent after a key update by sending additional packets under the old key (causing new packets to be discarded).</p>
+<p id="rfc.section.4.5.p.2">QUIC does not assume a reliable transport and is therefore required to handle attacks where packets are dropped in other ways.</p>
+<p id="rfc.section.4.5.p.3">The packet number is not reset and it is not permitted to go higher than its maximum value of 2^64-1.  This establishes a hard limit on the number of packets that can be sent.  Before this limit is reached, some AEAD functions have limits for how many packets can be encrypted under the same key and IV (see for example <a href="#AEBounds">[AEBounds]</a>).  An endpoint MUST initiate a key update (<a href="#key-update">Section 4.4</a>) prior to exceeding any limit set for the AEAD that is in use.</p>
+<p id="rfc.section.4.5.p.4">TLS maintains a separate sequence number that is used for record protection on the connection that is hosted on stream 1.  This sequence number is reset according to the rules in the TLS protocol.</p>
 <h1 id="rfc.section.5"><a href="#rfc.section.5">5.</a> <a href="#pre-handshake" id="pre-handshake">Pre-handshake QUIC Messages</a></h1>
 <p id="rfc.section.5.p.1">Implementations MUST NOT exchange data on any stream other than stream 1 prior to the completion of the TLS handshake.  However, QUIC requires the use of several types of frame for managing loss detection and recovery.  In addition, it might be useful to use the data acquired during the exchange of unauthenticated messages for congestion management.</p>
 <p id="rfc.section.5.p.2">This section generally only applies to TLS handshake messages from both peers and acknowledgments of the packets carrying those messages.  In many cases, the need for servers to provide acknowledgments is minimal, since the messages that clients send are small and implicitly acknowledged by the server&#8217;s responses.</p>
