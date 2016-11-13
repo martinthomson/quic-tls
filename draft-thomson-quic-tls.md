@@ -525,7 +525,7 @@ derived as defined in {{key-expansion}}.
 
 The nonce, N, for the AEAD is formed by combining either the Client Write IV or
 Server Write IV with packet numbers.  The 64 bits of the reconstructed QUIC
-packet number (see {{packet-number}}) in network byte order is left-padded with
+packet number in network byte order is left-padded with
 zeros to the N_MAX parameter of the AEAD (see Section 4 of {{!RFC5116}}).  The
 exclusive OR of the padded packet number and the IV forms the AEAD nonce.
 
@@ -604,40 +604,17 @@ key update until all of its handshake messages have been acknowledged by the
 server.
 
 
-## Packet Number Reconstruction {#packet-number}
+## Packet Numbers {#packet-number}
 
-Each endpoint maintains a 64-bit packet number that is incremented with every
-packet that it sends.  Retransmissions use new packet numbers (and are therefore
-encrypted differently).  The least significant 8-, 16-, 32-, or 48-bits of this
-number is encoded in the QUIC packet number field in every packet.
+QUIC has a single, contiguous packet number space.  In comparison, TLS
+restarts its sequence number each time that record protection keys are
+changed.  The sequence number restart in TLS ensures that a compromise of the
+current traffic keys does not allow an attacker to truncate the data that is
+sent after a key update by sending additional packets under the old key
+(causing new packets to be discarded).
 
-Each endpoint maintains a similar value for packets that it receives.  The
-highest received packet number is updated as it receives and successfully
-decrypts packets.  It also maintains a view of which packets it has successfully
-received.
-
-An endpoint recovers the packet number using the least significant bits from
-packets it receives.  A simple scheme centers a window around the packet number
-of the last packet to be successfully decrypted plus one.  The predicted packet
-number is in the range centered on that value.  by one and finding the packet
-number of an incoming packet to be within a range centered on that value.
-
-A more sophisticated algorithm first checks if the corresponding packet number
-smaller than the most recent has been received; if it has, then the packet
-number must be higher than the most recent packet.  Otherwise, the simpler
-scheme can be used.
-
-Note:
-
-: QUIC has a single, contiguous packet number space.  In comparison, TLS
-  restarts its sequence number each time that record protection keys are
-  changed.  The sequence number restart in TLS ensures that a compromise of the
-  current traffic keys does not allow an attacker to truncate the data that is
-  sent after a key update by sending additional packets under the old key
-  (causing new packets to be discarded).
-
-: QUIC does not assume a reliable transport and is therefore required to handle
-  attacks where packets are dropped in other ways.
+QUIC does not assume a reliable transport and is therefore required to handle
+attacks where packets are dropped in other ways.
 
 The packet number is not reset and it is not permitted to go higher than its
 maximum value of 2^64-1.  This establishes a hard limit on the number of packets
